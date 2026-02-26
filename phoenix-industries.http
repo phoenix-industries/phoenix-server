@@ -1,0 +1,6 @@
+@phoenix_industries_HostAddress = http://localhost:5156
+
+GET {{phoenix_industries_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
