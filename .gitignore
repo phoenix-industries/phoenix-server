@@ -1,1 +1,13 @@
-/bin/b
+# Build folders
+bin/
+obj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.cache
+*.log
+
+# App settings (development)
+appsettings.Development.json
