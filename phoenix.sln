@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36915.13 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "phoenix", "phoenix.csproj", "{94E57A7E-CF55-4BB7-9283-E0582D495E14}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{94E57A7E-CF55-4BB7-9283-E0582D495E14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94E57A7E-CF55-4BB7-9283-E0582D495E14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94E57A7E-CF55-4BB7-9283-E0582D495E14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94E57A7E-CF55-4BB7-9283-E0582D495E14}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {39BE77D4-C7A7-4489-B17E-76F425131413}
+	EndGlobalSection
+EndGlobal
