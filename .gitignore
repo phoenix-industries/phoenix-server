@@ -1,9 +1,8 @@
-# Build folders
-bin/
-obj/
+/bin/
+/obj/
 
 # Visual Studio files
-.vs/
+/.vs/
 *.user
 *.suo
 *.cache
