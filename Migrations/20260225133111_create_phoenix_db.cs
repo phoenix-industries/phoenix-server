@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace phoenix.Migrations
+namespace Phoenix.Migrations
 {
     /// <inheritdoc />
     public partial class create_phoenix_db : Migration

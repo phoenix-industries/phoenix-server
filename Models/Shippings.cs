@@ -1,6 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 
-namespace phoenix.Models
+namespace Phoenix.Models
 {
     public class Shippings
     {

@@ -7,6 +7,7 @@
 *.suo
 *.cache
 *.log
+*.env
 
 # App settings (development)
 appsettings.Development.json

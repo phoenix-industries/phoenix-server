@@ -1,0 +1,34 @@
+name: phoenix
+
+services:
+    postgres:
+        image: postgres:18-alpine
+        container_name: phoenix_postgres
+        restart: unless-stopped
+        hostname: postgres
+        env_file: ./.env
+        environment:
+            - LANG=C
+            - POSTGRES_DB=${POSTGRES_DB}
+            - POSTGRES_USER=${POSTGRES_USER}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            - PGPASSWORD=${POSTGRES_PASSWORD}
+        ports:
+            - ${POSTGRES_PORT}:5432
+        networks:
+            - phoenix_network
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: [ "CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-p", "${POSTGRES_PORT}", "-U", "${POSTGRES_USER}" ]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+            start_period: 10s
+
+
+networks:
+    phoenix_network: {}
+
+volumes:
+    postgres_data:

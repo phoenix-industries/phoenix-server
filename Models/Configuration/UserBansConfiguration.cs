@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace phoenix.Models.Configuration
+namespace Phoenix.Models.Configuration
 {
     public class UserBansConfiguration : IEntityTypeConfiguration<UserBans>
     {
@@ -13,7 +13,7 @@ namespace phoenix.Models.Configuration
 
             // Relationships
 
-            //relation with moderator 
+            //relation with moderator
             builder.HasOne(u => u.Moderator)
                 .WithMany(u => u.ModeratorBans)
                 .HasForeignKey(u => u.ModeratorId)

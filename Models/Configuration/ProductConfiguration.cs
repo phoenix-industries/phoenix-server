@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System.Security.Principal;
 
-namespace phoenix.Models.Configuration
+namespace Phoenix.Models.Configuration
 {
     public class ProductConfiguration : IEntityTypeConfiguration<Products>
     {
@@ -11,7 +11,7 @@ namespace phoenix.Models.Configuration
             builder.ToTable("Products");
             builder.Property(p => p.Name)
                 .IsRequired()
-                .HasMaxLength(255); 
+                .HasMaxLength(255);
 
             //relation with user 1:m
             builder.HasOne(p => p.User)

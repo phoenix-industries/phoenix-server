@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace phoenix.Models.Configuration
+namespace Phoenix.Models.Configuration
 {
     public class ReviewConfiguration : IEntityTypeConfiguration<ProductReviws>
     {

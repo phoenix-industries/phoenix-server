@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
-namespace phoenix.Models.Configuration
+
+namespace Phoenix.Models.Configuration
 {
     public class CategoryConfiguration : IEntityTypeConfiguration<ProductCategories>
     {
@@ -9,6 +10,6 @@ namespace phoenix.Models.Configuration
             builder.ToTable("ProductCategories");
             builder.HasKey(e => e.Id);
             builder.Property(e => e.Category).IsRequired().HasMaxLength(100);
-        }       
+        }
     }
 }

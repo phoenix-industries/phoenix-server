@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System.Reflection.Emit;
 
-namespace phoenix.Models.Configuration
+namespace Phoenix.Models.Configuration
 {
     public class ProductTagsConfiguration : Microsoft.EntityFrameworkCore.IEntityTypeConfiguration<ProductTag>
     {

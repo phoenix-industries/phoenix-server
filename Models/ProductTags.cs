@@ -1,6 +1,6 @@
-﻿using Azure;
+using Azure;
 
-namespace phoenix.Models
+namespace Phoenix.Models
 {
     public class ProductTag
     {

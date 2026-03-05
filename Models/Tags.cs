@@ -1,4 +1,4 @@
-﻿namespace phoenix.Models
+namespace Phoenix.Models
 {
     public class Tags
     {

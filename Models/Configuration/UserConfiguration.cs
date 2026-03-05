@@ -1,8 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using phoenix.Models;
 
-namespace phoenix.Models.Configuration
+namespace Phoenix.Models.Configuration
 {
     public class UserConfiguration : IEntityTypeConfiguration<User>
     {
@@ -16,7 +15,7 @@ namespace phoenix.Models.Configuration
 
             //indexes
             builder.HasIndex(u => u.Email).IsUnique().HasDatabaseName("users_email_idx");
-            builder.HasIndex(u => u.Phone).IsUnique().HasDatabaseName("users_phone_idx");   
+            builder.HasIndex(u => u.Phone).IsUnique().HasDatabaseName("users_phone_idx");
         }
     }
 }

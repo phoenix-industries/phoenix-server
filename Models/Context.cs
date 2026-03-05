@@ -1,10 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
-using phoenix.Models.Configuration;
+using Microsoft.EntityFrameworkCore;
+using Phoenix.Models.Configuration;
 
-namespace phoenix.Models
+namespace Phoenix.Models
 {
     public class Context : DbContext
     {
+		private readonly IConfiguration _configuration;
+
         public DbSet<User> Users { get; set; }
         public DbSet<Products> Products { get; set; }
         public DbSet<ProductImages> ProductImages { get; set; }
@@ -15,9 +17,14 @@ namespace phoenix.Models
         public DbSet<UserBans> UserBans { get; set; }
         public DbSet<Shippings> Shippings { get; set; }
         public DbSet<Invoices> Invoices { get; set; }
+
+		public Context(DbContextOptions<Context> options, IConfiguration configuration) : base(options) {
+			this._configuration = configuration;
+		}
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(@"Server=localhost;Database=Phoenix;Trusted_Connection=True;TrustServerCertificate=True;");
+			optionsBuilder.UseNpgsql(this._configuration.GetConnectionString("DefaultConnection"));
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
