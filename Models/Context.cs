@@ -5,7 +5,7 @@ namespace Phoenix.Models
 {
     public class Context : DbContext
     {
-		private readonly IConfiguration _configuration;
+        private readonly IConfiguration _configuration;
 
         public DbSet<User> Users { get; set; }
         public DbSet<Products> Products { get; set; }
@@ -18,14 +18,17 @@ namespace Phoenix.Models
         public DbSet<Shippings> Shippings { get; set; }
         public DbSet<Invoices> Invoices { get; set; }
 
-		public Context(DbContextOptions<Context> options, IConfiguration configuration) : base(options) {
-			this._configuration = configuration;
-		}
+        public Context(DbContextOptions<Context> options, IConfiguration configuration) : base(options)
+        {
+            this._configuration = configuration;
+        }
 
+        /*
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
 			optionsBuilder.UseNpgsql(this._configuration.GetConnectionString("DefaultConnection"));
         }
+		*/
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

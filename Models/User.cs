@@ -9,9 +9,12 @@ namespace Phoenix.Models
         public int Role { get; set; } = 10; // default role is user
         public string City { get; set; }
         public string Governorate { get; set; }
+		public string Address { get; set; }
+		public string NationalID { get; set; }
+		public string Password { get; set; }
         public DateTimeOffset BirthDate { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }= DateTimeOffset.UtcNow;
-        public DateTimeOffset UpdatedAt { get; set; }= DateTimeOffset.UtcNow;
+        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset? DeletedAt { get; set; }// nullable
 
         // navigation properties

@@ -1,32 +1,51 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Phoenix.Models;
 
-namespace Phoenix {
-	class Program {
-		public static void Main(string[] args) {
-			var builder = WebApplication.CreateBuilder(args);
+namespace Phoenix
+{
+    class Program
+    {
+        public static void Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
 
-			// Add services to the container.
+            // Add services to the container.
 
-			builder.Services.AddControllers();
-			// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-			builder.Services.AddEndpointsApiExplorer();
-			builder.Services.AddSwaggerGen();
+            builder.Services.AddControllers();
+            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
 
-			var app = builder.Build();
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(jwtOptions =>
+                {
+                    jwtOptions.RequireHttpsMetadata = false;
+                    var domain = builder.Configuration.GetValue<string>("App:Domain");
+                    jwtOptions.Authority = domain;
+                    jwtOptions.Audience = domain;
+                });
 
-			// Configure the HTTP request pipeline.
-			if (app.Environment.IsDevelopment()) {
-				app.UseSwagger();
-				app.UseSwaggerUI();
-			}
+            builder.Services.AddDbContext<Context>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-			// app.UseHttpsRedirection();
+            var app = builder.Build();
 
-			app.UseAuthorization();
+            // Configure the HTTP request pipeline.
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
 
-			app.MapControllers();
+            // app.UseHttpsRedirection();
 
-			app.Run();
-		}
-	}
+            app.UseAuthorization();
+
+            app.MapControllers();
+
+            app.Run();
+        }
+    }
 }
