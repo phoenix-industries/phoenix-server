@@ -1,6 +1,0 @@
-@phoenix_HostAddress = http://localhost:5269
-
-GET {{phoenix_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
