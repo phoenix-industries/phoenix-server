@@ -54,7 +54,7 @@ func ConfigFromEnv() (*Config, error) {
 	}
 
 	return &Config{
-		Name:               os.Getenv("POSTGRES_DBNAME"),
+		Name:               os.Getenv("POSTGRES_DB"),
 		User:               os.Getenv("POSTGRES_USER"),
 		Host:               os.Getenv("POSTGRES_HOST"),
 		Port:               os.Getenv("POSTGRES_PORT"),
