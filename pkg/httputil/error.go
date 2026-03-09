@@ -47,8 +47,5 @@ func (e *HTTPError) Write(w http.ResponseWriter) {
 func (e *HTTPError) WriteJSON(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(e.code)
-	return json.NewEncoder(w).Encode(map[string]any{
-		"ok":    false,
-		"error": e.msg,
-	})
+	return json.NewEncoder(w).Encode(map[string]string{"error": e.msg})
 }
