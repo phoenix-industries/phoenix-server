@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	defaultJWTIssuer    = "phoenix"
-	defaultJWTExpiresAt = 10 * time.Minute
+	defaultJWTIssuer       = "phoenix"
+	DefaultJWTDuration     = 10 * time.Minute
+	DefaultSessionDuration = 365 * 24 * time.Hour
 )
 
 type JWTClaims struct {
@@ -43,7 +44,7 @@ func (a *Auth) GenerateJWT(subject, audience string, role Role) (string, error) 
 			Subject:   subject,
 			Audience:  []string{audience},
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(defaultJWTExpiresAt)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(DefaultJWTDuration)),
 		},
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
