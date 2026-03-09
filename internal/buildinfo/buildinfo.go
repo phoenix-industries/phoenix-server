@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-const (
+var (
 	BuildTag  string = "unknown"
 	GoVersion string = "unknown"
 	SystemTag string = "unknown"
