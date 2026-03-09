@@ -1,7 +1,8 @@
-// Package kernel provides core dependencies for the services.
+// Package kernel manages the core dependencies and services.
 package kernel
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -16,13 +17,13 @@ type Service interface {
 
 type Kernel struct {
 	services map[string]Service
-	mux      *http.ServeMux
 	db       *database.Database
+	mux      *http.ServeMux
 	auth     *auth.Auth
 	logger   *slog.Logger
 }
 
-func NewKernel(port string, auth *auth.Auth, logger *slog.Logger) *Kernel {
+func NewKernel(auth *auth.Auth, logger *slog.Logger) *Kernel {
 	return &Kernel{
 		mux:    http.NewServeMux(),
 		auth:   auth,
@@ -30,8 +31,16 @@ func NewKernel(port string, auth *auth.Auth, logger *slog.Logger) *Kernel {
 	}
 }
 
+func (k *Kernel) Database() *database.Database {
+	return k.db
+}
+
 func (k *Kernel) Mux() *http.ServeMux {
 	return k.mux
+}
+
+func (k *Kernel) Auth() *auth.Auth {
+	return k.auth
 }
 
 func (k *Kernel) Logger() *slog.Logger {
@@ -42,7 +51,7 @@ func (k *Kernel) Run(services ...Service) error {
 	for _, service := range services {
 		name := service.Name()
 		if _, ok := k.services[name]; ok {
-			continue
+			return fmt.Errorf("service already registered: %s", name)
 		}
 		k.services[name] = service
 		if err := service.Register(k); err != nil {
