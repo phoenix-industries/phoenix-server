@@ -6,11 +6,14 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/phoenix-industries/phoenix-server/internal/authservice"
 	"github.com/phoenix-industries/phoenix-server/internal/buildinfo"
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database"
+	"github.com/phoenix-industries/phoenix-server/pkg/httputil"
 	"github.com/phoenix-industries/phoenix-server/pkg/kernel"
 )
 
@@ -20,13 +23,29 @@ var port = flag.String("port", defaultPort, "")
 
 func main() {
 	flag.Parse()
-	if err := run(); err != nil {
+
+	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	defer func() {
+		done()
+		if r := recover(); r != nil {
+			slog.Error("application panic", "panic", r)
+			os.Exit(1)
+		}
+	}()
+
+	err := run(ctx)
+	done()
+
+	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
+
+	slog.Info("successfully exited")
 }
 
-func run() error {
+func run(ctx context.Context) error {
 	if *port == "" {
 		*port = os.Getenv("PORT")
 		if *port == "" {
@@ -36,13 +55,12 @@ func run() error {
 		*port = ":" + *port
 	}
 
-	slog.Info("build info", "build_tag", buildinfo.BuildTag, "go_version", buildinfo.GoVersion, "system_tag", buildinfo.SystemTag)
-	if buildinfo.DevMode() {
-		slog.Info("dev mode enabled")
-	}
-
-	ctx := context.Background()
 	logger := slog.Default()
+
+	logger.Info("build info", "build_tag", buildinfo.BuildTag, "go_version", buildinfo.GoVersion, "system_tag", buildinfo.SystemTag)
+	if buildinfo.DevMode() {
+		logger.Info("dev mode enabled")
+	}
 
 	dbConfig, err := database.ConfigFromEnv()
 	if err != nil {
@@ -76,11 +94,15 @@ func run() error {
 		return err
 	}
 
-	slog.Info("server started", "port", *port)
+	logger.Info("server started", "port", *port)
 
-	if err := http.ListenAndServe(*port, kernel.Mux()); err != nil {
-		return err
-	}
+	mux := kernel.Mux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if err := httputil.Error(nil, "are you lost bud?", http.StatusNotFound).WriteJSON(w); err != nil {
+			logger.ErrorContext(r.Context(), "encoding json error failed, that's an error for an error, congrats!", "error", err)
+			http.Error(w, "something went wrong", http.StatusInternalServerError)
+		}
+	})
 
-	return nil
+	return http.ListenAndServe(*port, mux)
 }
