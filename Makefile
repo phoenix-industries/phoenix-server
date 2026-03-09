@@ -7,7 +7,7 @@ run: build
 .PHONY: run
 
 ## build: build the application
-build: /bin/phoenix-server
+build: bin/phoenix-server
 .PHONY: build
 
 bin/phoenix-server: $(SRC) scripts/build
