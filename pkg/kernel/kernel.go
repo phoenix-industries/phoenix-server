@@ -25,9 +25,10 @@ type Kernel struct {
 
 func NewKernel(auth *auth.Auth, logger *slog.Logger) *Kernel {
 	return &Kernel{
-		mux:    http.NewServeMux(),
-		auth:   auth,
-		logger: logger,
+		services: map[string]Service{},
+		mux:      http.NewServeMux(),
+		auth:     auth,
+		logger:   logger,
 	}
 }
 
