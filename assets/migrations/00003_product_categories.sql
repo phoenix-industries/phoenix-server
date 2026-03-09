@@ -1,0 +1,11 @@
+-- +goose Up
+CREATE TABLE product_categories (
+	id TEXT PRIMARY KEY,
+	category TEXT NOT NULL,
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- +goose Down
+DROP TABLE product_categories;

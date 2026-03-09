@@ -1,0 +1,15 @@
+-- +goose Up
+CREATE TABLE product_reviews (
+	id TEXT PRIMARY KEY,
+	user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+	product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
+	rating INTEGER NOT NULL,
+	comment TEXT NOT NULL,
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+
+-- +goose Down
+DROP TABLE product_reviews;

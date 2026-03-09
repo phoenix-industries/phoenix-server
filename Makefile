@@ -1,4 +1,6 @@
 SRC := $(wildcard cmd/phoenix-server/*.go pkg/**/*.go internal/**/*.go assets/*)
+GOOSE_TAGS := no_clickhouse no_libsql no_mssql no_mysql no_sqlite3 no_vertica no_ydb
+GOOSE_CMD := go run -tags "$(GOOSE_TAGS)" github.com/pressly/goose/v3/cmd/goose@latest
 
 run: build
 	./bin/phoenix-server
@@ -67,3 +69,43 @@ help:
 	@echo 'Usage:'
 	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
 .PHONY: help
+
+## migrations/create name=$1: create a new database migration
+migrations/create:
+	$(GOOSE_CMD) -s create $(name) sql
+.PHONY: migrations/create
+
+## migrations/up: apply all migrations
+migrations/up:
+	$(GOOSE_CMD) up
+.PHONY: migrations/up
+
+## migrations/up-to version=$1: migrate up to a specific version
+migrations/up-to:
+	$(GOOSE_CMD) up-to $(version)
+.PHONY: migrations/up-to
+
+## migrations/up-by-one migrate up a single migration from the current version
+migrations/up-by-one:
+	$(GOOSE_CMD) up-to $(version)
+.PHONY: migrations/up-by-one
+
+## migrations/down: roll back a single migration from the current version
+migrations/down:
+	$(GOOSE_CMD) down
+.PHONY: migrations/down
+
+## migrations/down-to: roll back to a specific version
+migrations/down-to:
+	$(GOOSE_CMD) down-to $(version)
+.PHONY: migrations/down-to
+
+## migrations/status: prints the status of all migrations
+migrations/status:
+	$(GOOSE_CMD) status
+.PHONY: migrations/status
+
+## migrations/version: print the current in-use migration version
+migrations/version:
+	$(GOOSE_CMD) version
+.PHONY: migrations/version
