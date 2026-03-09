@@ -1,3 +1,4 @@
+// Package models contains database models.
 package models
 
 import "time"
