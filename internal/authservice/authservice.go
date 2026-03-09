@@ -22,18 +22,18 @@ func New() kernel.Service {
 }
 
 func (s *Service) Name() string {
-	return "auth_service"
+	return "auth"
 }
 
-func (s *Service) Register(k *kernel.Kernel) error {
+func (s *Service) Register(k *kernel.Kernel) (http.Handler, error) {
 	s.db = k.Database()
 	s.auth = k.Auth()
-	s.logger = k.Logger()
+	s.logger = k.Logger().WithGroup(s.Name())
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/register", s.RegisterHandler)
-	mux.HandleFunc("/login", s.LoginHandler)
-	mux.HandleFunc("/logout", s.LogoutHandler)
+	mux.HandleFunc("POST /register", s.RegisterHandler)
+	mux.HandleFunc("POST /login", s.LoginHandler)
+	mux.HandleFunc("POST /logout", s.LogoutHandler)
 
 	middleware := httputil.NewMiddleware(s.logger)
 	handler := httputil.ChainMiddlewares(
@@ -41,9 +41,7 @@ func (s *Service) Register(k *kernel.Kernel) error {
 		middleware.Recovery,
 	)(mux)
 
-	k.Mux().Handle("/auth", handler)
-
-	return nil
+	return handler, nil
 }
 
 type AuthResponse struct {
