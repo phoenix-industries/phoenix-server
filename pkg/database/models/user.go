@@ -6,49 +6,21 @@ import (
 	"time"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database"
 )
 
-type UserRole string
-
-const (
-	UserRoleRoot    UserRole = "root"
-	UserRoleAdmin   UserRole = "admin"
-	UserRoleManager UserRole = "manager"
-	UserRoleMember  UserRole = "member"
-)
-
-func (r UserRole) String() string {
-	return string(r)
-}
-
-func (r UserRole) Scan(value any) error {
-	switch value.(string) {
-	case "root":
-		r = UserRoleRoot
-	case "admin":
-		r = UserRoleAdmin
-	case "manager":
-		r = UserRoleManager
-	case "member":
-		r = UserRoleMember
-	default:
-		return errors.New("invalid user role")
-	}
-	return nil
-}
-
 type User struct {
-	Model
-	Name        string     `db:"name" json:"name"`
-	Email       string     `db:"email" json:"email"`
-	Phone       string     `db:"phone" json:"phone"`
-	Role        UserRole   `db:"role" json:"role"`
-	City        string     `db:"city" json:"city"`
-	Governorate string     `db:"governorate" json:"governorate"`
-	Address     string     `db:"address" json:"address"`
-	Password    string     `db:"password" json:"-"`
-	Birthdate   *time.Time `db:"birthdate" json:"birthdate"`
+	*Model
+	Name        string    `db:"name" json:"name"`
+	Email       string    `db:"email" json:"email"`
+	Phone       string    `db:"phone" json:"phone"`
+	Role        auth.Role `db:"role" json:"role"`
+	City        string    `db:"city" json:"city"`
+	Governorate string    `db:"governorate" json:"governorate"`
+	Address     string    `db:"address" json:"address"`
+	Password    string    `db:"password" json:"-"`
+	Birthdate   time.Time `db:"birthdate" json:"birthdate"`
 }
 
 func (u *User) Validate() error {
@@ -61,37 +33,41 @@ func (u *User) Validate() error {
 	if u.Phone == "" {
 		return errors.New("phone is required")
 	}
+	if u.Role == "" {
+		return errors.New("role is required")
+	}
 	if u.City == "" {
 		return errors.New("city is required")
 	}
 	if u.Governorate == "" {
 		return errors.New("governorate is required")
 	}
-	if u.Birthdate == nil {
+	if u.Birthdate.IsZero() {
 		return errors.New("birthdate is required")
 	}
 	return nil
 }
 
-// InsertUser inserts a new user into the database returning the user id.
-func InsertUser(ctx context.Context, db database.DB, user *User) (string, error) {
+func UserInsert(ctx context.Context, db database.DB, user *User) error {
+	if user.ID == "" {
+		return errors.New("id is not set")
+	}
 	if user.Role == "" {
-		user.Role = UserRoleMember
+		user.Role = auth.RoleMember
 	}
 	stmt := `
 		INSERT INTO users
-		(name, email, phone, role, city, governorate, address, password, birthdate)
+		(id, name, email, phone, role, city, governorate, address, password, birthdate)
 		VALUES
-		($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
-	if err := db.QueryRow(ctx, stmt, user.Name, user.Email, user.Phone, user.Role, user.City, user.Governorate, user.Address, user.Password, user.Birthdate).Scan(&user.ID); err != nil {
-		return "", err
+	if _, err := db.Exec(ctx, stmt, user.ID, user.Name, user.Email, user.Phone, user.Role, user.City, user.Governorate, user.Address, user.Password, user.Birthdate); err != nil {
+		return err
 	}
-	return user.ID, nil
+	return nil
 }
 
-func GetUserByID(ctx context.Context, db database.DB, id string) (*User, error) {
+func UserGetByID(ctx context.Context, db database.DB, id string) (*User, error) {
 	stmt := `SELECT * FROM users WHERE id = $1`
 	var user User
 	if err := pgxscan.Get(ctx, db, &user, stmt, id); err != nil {
@@ -100,7 +76,7 @@ func GetUserByID(ctx context.Context, db database.DB, id string) (*User, error) 
 	return &user, nil
 }
 
-func GetUserByEmail(ctx context.Context, db database.DB, email string) (*User, error) {
+func UserGetByEmail(ctx context.Context, db database.DB, email string) (*User, error) {
 	stmt := `SELECT * FROM users WHERE email = $1`
 	var user User
 	if err := pgxscan.Get(ctx, db, &user, stmt, email); err != nil {
@@ -109,11 +85,38 @@ func GetUserByEmail(ctx context.Context, db database.DB, email string) (*User, e
 	return &user, nil
 }
 
-func GetUserByPhone(ctx context.Context, db database.DB, phone string) (*User, error) {
+func UserGetByPhone(ctx context.Context, db database.DB, phone string) (*User, error) {
 	stmt := `SELECT * FROM users WHERE phone = $1`
 	var user User
 	if err := pgxscan.Get(ctx, db, &user, stmt, phone); err != nil {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func UserExistsWithID(ctx context.Context, db database.DB, id string) (bool, error) {
+	stmt := `SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`
+	var exists bool
+	if err := pgxscan.Get(ctx, db, &exists, stmt, id); err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+func UserExistsWithEmail(ctx context.Context, db database.DB, email string) (bool, error) {
+	stmt := `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)`
+	var exists bool
+	if err := pgxscan.Get(ctx, db, &exists, stmt, email); err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+func UserExistsWithPhone(ctx context.Context, db database.DB, phone string) (bool, error) {
+	stmt := `SELECT EXISTS(SELECT 1 FROM users WHERE phone = $1)`
+	var exists bool
+	if err := pgxscan.Get(ctx, db, &exists, stmt, phone); err != nil {
+		return false, err
+	}
+	return exists, nil
 }
