@@ -80,12 +80,10 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	jwtSecret, err := auth.JWTSecretFromEnv()
+	auth, err := auth.NewFromEnv()
 	if err != nil {
 		return err
 	}
-
-	auth := auth.New(jwtSecret)
 
 	kernel := kernel.NewKernel(db, auth, logger)
 	if err := kernel.Run(

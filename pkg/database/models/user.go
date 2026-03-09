@@ -45,6 +45,9 @@ func (u *User) Validate() error {
 	if u.Birthdate.IsZero() {
 		return errors.New("birthdate is required")
 	}
+	if u.Password == "" {
+		return errors.New("password is required")
+	}
 	return nil
 }
 

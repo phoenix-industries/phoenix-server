@@ -3,7 +3,6 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -25,14 +24,6 @@ func (c *JWTClaims) Valid() error {
 		return errors.New("invalid token: role is empty")
 	}
 	return nil
-}
-
-func JWTSecretFromEnv() ([]byte, error) {
-	secret := os.Getenv("AUTH_JWT_SECRET")
-	if secret == "" {
-		return nil, errors.New("jwt secret is not set in env `AUTH_JWT_SECRET`")
-	}
-	return []byte(secret), nil
 }
 
 // GenerateJWT generates a JWT with the HS256 method.
