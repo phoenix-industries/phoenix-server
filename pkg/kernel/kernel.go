@@ -12,23 +12,24 @@ import (
 
 type Service interface {
 	Name() string
-	Register(k *Kernel) error
+	Register(k *Kernel) (http.Handler, error)
 }
 
 type Kernel struct {
-	services map[string]Service
-	db       *database.Database
 	mux      *http.ServeMux
+	db       *database.Database
 	auth     *auth.Auth
 	logger   *slog.Logger
+	services map[string]Service
 }
 
-func NewKernel(auth *auth.Auth, logger *slog.Logger) *Kernel {
+func NewKernel(db *database.Database, auth *auth.Auth, logger *slog.Logger) *Kernel {
 	return &Kernel{
-		services: map[string]Service{},
 		mux:      http.NewServeMux(),
+		db:       db,
 		auth:     auth,
 		logger:   logger,
+		services: map[string]Service{},
 	}
 }
 
@@ -55,8 +56,12 @@ func (k *Kernel) Run(services ...Service) error {
 			return fmt.Errorf("service already registered: %s", name)
 		}
 		k.services[name] = service
-		if err := service.Register(k); err != nil {
+		handler, err := service.Register(k)
+		if err != nil {
 			return err
+		}
+		if handler != nil {
+			k.mux.Handle(fmt.Sprintf("/%s/", name), http.StripPrefix(fmt.Sprintf("/%s", name), handler))
 		}
 		k.logger.Info("service registered", "name", name)
 	}

@@ -69,10 +69,14 @@ func run() error {
 
 	auth := auth.New(jwtSecret)
 
-	kernel := kernel.NewKernel(auth, logger)
-	kernel.Run(
+	kernel := kernel.NewKernel(db, auth, logger)
+	if err := kernel.Run(
 		authservice.New(),
-	)
+	); err != nil {
+		return err
+	}
+
+	slog.Info("server started", "port", *port)
 
 	if err := http.ListenAndServe(*port, kernel.Mux()); err != nil {
 		return err
