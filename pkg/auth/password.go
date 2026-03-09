@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"io"
 
 	"golang.org/x/crypto/scrypt"
@@ -35,12 +36,12 @@ func (a *Auth) HashWithSalt(password, salt []byte) (string, string, error) {
 		scryptKeyLen,
 	)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	block, err := aes.NewCipher(hash)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to create cipher: %w", err)
 	}
 
 	cipherBytes := make([]byte, aes.BlockSize+len(a.passwordSigningKey))
@@ -58,7 +59,7 @@ func (a *Auth) HashWithSalt(password, salt []byte) (string, string, error) {
 func (a *Auth) GenerateSalt() ([]byte, error) {
 	salt := make([]byte, scryptSaltLen)
 	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to generate salt: %w", err)
 	}
 	return salt, nil
 }
