@@ -1,13 +1,8 @@
 /bin/
-/obj/
-
-# Visual Studio files
+/tmp/
 /.vs/
-*.user
-*.suo
-*.cache
+/.vscode/
 *.log
 *.env
-
-# App settings (development)
-appsettings.Development.json
+*.env.*
+!.env.dev
