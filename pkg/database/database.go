@@ -15,8 +15,8 @@ const defaultTimeout = 3 * time.Second
 
 // Database contains Postgres database connection.
 type Database struct {
-	config *Config
 	pool   *pgxpool.Pool
+	config *Config
 	logger *slog.Logger
 }
 
@@ -50,6 +50,14 @@ func ConnectWithLogger(ctx context.Context, config *Config, logger *slog.Logger)
 		pool:   pool,
 		logger: logger,
 	}, nil
+}
+
+func (db *Database) Pool() *pgxpool.Pool {
+	return db.pool
+}
+
+func (db *Database) Config() *Config {
+	return db.config
 }
 
 // Close closes database connection pool.
