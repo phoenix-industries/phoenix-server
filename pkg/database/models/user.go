@@ -16,10 +16,10 @@ type User struct {
 	Email       string    `db:"email" json:"email"`
 	Phone       string    `db:"phone" json:"phone"`
 	Role        auth.Role `db:"role" json:"role"`
+	Password    string    `db:"password" json:"-"`
 	City        string    `db:"city" json:"city"`
 	Governorate string    `db:"governorate" json:"governorate"`
 	Address     string    `db:"address" json:"address"`
-	Password    string    `db:"password" json:"-"`
 	Birthdate   time.Time `db:"birthdate" json:"birthdate"`
 }
 
@@ -45,9 +45,6 @@ func (u *User) Validate() error {
 	if u.Birthdate.IsZero() {
 		return errors.New("birthdate is required")
 	}
-	if u.Password == "" {
-		return errors.New("password is required")
-	}
 	return nil
 }
 
@@ -57,6 +54,9 @@ func UserInsert(ctx context.Context, db database.DB, user *User) error {
 	}
 	if user.Role == "" {
 		user.Role = auth.RoleMember
+	}
+	if user.Password == "" {
+		return errors.New("password is not set")
 	}
 	stmt := `
 		INSERT INTO users
