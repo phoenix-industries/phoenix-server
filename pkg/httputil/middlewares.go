@@ -43,6 +43,7 @@ func (m *Middleware) Logging(next http.Handler) http.Handler {
 			return
 		}
 		r = r.WithContext(context.WithValue(ctx, RequestIDKey, requestID))
+		w.Header().Set("X-Request-ID", requestID)
 		if buildinfo.DevMode() {
 			start := time.Now()
 			next.ServeHTTP(w, r)
