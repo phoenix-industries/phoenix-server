@@ -4,12 +4,14 @@ import (
 	"context"
 	"flag"
 	"log/slog"
+	"net/http"
 	"os"
 
+	"github.com/phoenix-industries/phoenix-server/internal/authservice"
 	"github.com/phoenix-industries/phoenix-server/internal/buildinfo"
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database"
-	"github.com/phoenix-industries/phoenix-server/pkg/server"
+	"github.com/phoenix-industries/phoenix-server/pkg/kernel"
 )
 
 const defaultPort = ":5000"
@@ -67,8 +69,12 @@ func run() error {
 
 	auth := auth.New(jwtSecret)
 
-	server := server.NewServer(*port, auth, logger)
-	if err := server.Run(); err != nil {
+	kernel := kernel.NewKernel(auth, logger)
+	kernel.Run(
+		authservice.New(),
+	)
+
+	if err := http.ListenAndServe(*port, kernel.Mux()); err != nil {
 		return err
 	}
 
