@@ -37,8 +37,6 @@ func ConnectWithLogger(ctx context.Context, config *Config, logger *slog.Logger)
 	defer cancel()
 
 	conn := config.ConnectionString()
-	logger.Info("database: connecting", "connection_string", conn)
-
 	pgxConfig, err := pgxpool.ParseConfig(conn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse connection config: %w", err)
