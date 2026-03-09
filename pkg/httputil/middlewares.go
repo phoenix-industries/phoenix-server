@@ -47,7 +47,7 @@ func (m *Middleware) Logging(next http.Handler) http.Handler {
 			start := time.Now()
 			next.ServeHTTP(w, r)
 			duration := time.Since(start)
-			m.logger.Info("request handled", "id", requestID, "duration", duration, "client", Client(r), "user_agent", UserAgent(r), "ip", IP(r))
+			m.logger.Info("request handled", "request_id", requestID, "duration", duration, "client", Client(r), "user_agent", UserAgent(r), "ip", IP(r))
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -58,8 +58,8 @@ func (m *Middleware) Recovery(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				requestID := r.Context().Value(RequestIDKey).(string)
-				m.logger.Error("request panic", "id", requestID, "error", err)
+				requestID := r.Context().Value(RequestIDKey)
+				m.logger.Error("request panic", "request_id", requestID, "error", err)
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 			}
 		}()

@@ -12,7 +12,7 @@ type HTTPError struct {
 	code int
 }
 
-func Error(err error, msg string, code int) error {
+func Error(err error, msg string, code int) *HTTPError {
 	return &HTTPError{
 		err:  err,
 		msg:  msg,
