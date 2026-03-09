@@ -10,9 +10,10 @@ import (
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database/models"
 	"github.com/phoenix-industries/phoenix-server/pkg/httputil"
+	"github.com/phoenix-industries/phoenix-server/pkg/validate"
 )
 
-type RegisterData struct {
+type registerData struct {
 	Name        string    `json:"name"`
 	Email       string    `json:"email"`
 	Phone       string    `json:"phone"`
@@ -24,12 +25,17 @@ type RegisterData struct {
 }
 
 func (s *Service) RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	var data RegisterData
+	var data registerData
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
 		return
 	}
 	defer r.Body.Close()
+
+	if err := validate.Password(data.Password); err != nil {
+		httputil.Error(nil, err.Error(), http.StatusBadRequest).WriteJSON(w)
+		return
+	}
 
 	user := models.User{
 		Name:        data.Name,

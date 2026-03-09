@@ -8,6 +8,7 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database"
+	"github.com/phoenix-industries/phoenix-server/pkg/validate"
 )
 
 type User struct {
@@ -44,6 +45,12 @@ func (u *User) Validate() error {
 	}
 	if u.Birthdate.IsZero() {
 		return errors.New("birthdate is required")
+	}
+	if err := validate.Email(u.Email); err != nil {
+		return err
+	}
+	if err := validate.PhoneNumber(u.Phone); err != nil {
+		return err
 	}
 	return nil
 }
