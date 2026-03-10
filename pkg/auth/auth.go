@@ -9,15 +9,21 @@ import (
 )
 
 type Auth struct {
-	jwtSecret             []byte
-	passwordSigningKey    []byte
-	passwordSaltSeparator []byte
+	jwtSecret      []byte
+	passwordSecret []byte
 }
 
-func New(jwtSecret []byte) *Auth {
-	return &Auth{
-		jwtSecret: jwtSecret,
+func New(jwtSecret []byte, passwordSecret []byte) (*Auth, error) {
+	if len(jwtSecret) != 32 {
+		return nil, errors.New("jwt secret must be exactly 32 bytes")
 	}
+	if len(passwordSecret) != 32 {
+		return nil, errors.New("password signing key must be exactly 32 bytes")
+	}
+	return &Auth{
+		jwtSecret:      jwtSecret,
+		passwordSecret: passwordSecret,
+	}, nil
 }
 
 func NewFromEnv() (*Auth, error) {
@@ -25,17 +31,9 @@ func NewFromEnv() (*Auth, error) {
 	if err != nil {
 		return nil, errors.New("failed to decode jwt secret")
 	}
-	signingKey, err := base64.StdEncoding.DecodeString(os.Getenv("AUTH_PASSWORD_SIGNING_KEY"))
+	passwordSecret, err := base64.StdEncoding.DecodeString(os.Getenv("AUTH_PASSWORD_SECRET"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode signer key: %v", err)
 	}
-	saltSep, err := base64.StdEncoding.DecodeString(os.Getenv("AUTH_PASSWORD_SALT_SEPARATOR"))
-	if err != nil {
-		return nil, fmt.Errorf("hasher.init: failed to decode salt separator: %v", err)
-	}
-	return &Auth{
-		jwtSecret:             []byte(jwtSecret),
-		passwordSigningKey:    signingKey,
-		passwordSaltSeparator: saltSep,
-	}, nil
+	return New(jwtSecret, passwordSecret)
 }

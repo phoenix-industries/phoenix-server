@@ -73,11 +73,11 @@ func (s *Service) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		user.ID = userID
 
-		hash, salt, err := s.auth.Hash(user.Password)
+		hash, err := s.auth.HashPassword(data.Password)
 		if err != nil {
 			return httputil.Error(err, "failed to hash password", http.StatusInternalServerError)
 		}
-		user.Password = hash + "$" + salt
+		user.Password = hash
 
 		if err := models.UserInsert(ctx, tx, &user); err != nil {
 			return httputil.Error(err, "failed to create user", http.StatusInternalServerError)
