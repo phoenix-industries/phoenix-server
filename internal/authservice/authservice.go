@@ -34,6 +34,7 @@ func (s *Service) Register(k *kernel.Kernel) (http.Handler, error) {
 	mux.HandleFunc("POST /register", s.RegisterHandler)
 	mux.HandleFunc("POST /login", s.LoginHandler)
 	mux.HandleFunc("POST /logout", s.LogoutHandler)
+	mux.HandleFunc("POST /refresh", s.RefreshHandler)
 
 	middleware := httputil.NewMiddleware(s.logger)
 	handler := httputil.ChainMiddlewares(

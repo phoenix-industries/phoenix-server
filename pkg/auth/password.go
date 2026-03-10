@@ -82,7 +82,6 @@ func (a *Auth) VerifyPassword(password, hash string) (bool, error) {
 	if len(key) != len(hashedKey) {
 		return false, nil
 	}
-	println("lol")
 
 	return subtle.ConstantTimeCompare(key, hashedKey) == 1, nil
 }

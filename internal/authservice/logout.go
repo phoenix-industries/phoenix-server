@@ -43,6 +43,10 @@ func (s *Service) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
 		return
 	}
+	if data.RefreshToken == "" {
+		httputil.ErrorBadRequest().WriteJSON(w)
+		return
+	}
 
 	ctx := r.Context()
 	err = s.db.InTx(ctx, func(tx pgx.Tx) error {

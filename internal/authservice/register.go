@@ -105,13 +105,13 @@ func (s *Service) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		client := httputil.Client(r)
-		jwt, err := s.auth.GenerateJWT(user.ID, client, user.Role)
+		accessToken, err := s.auth.GenerateJWT(user.ID, client, user.Role)
 		if err != nil {
 			return httputil.Error(err, "failed to generate jwt", http.StatusInternalServerError)
 		}
 
 		res.TokenType = auth.TokenType
-		res.AccessToken = jwt
+		res.AccessToken = accessToken
 		res.RefreshToken = refreshToken
 		res.ExpiresAt = session.ExpiresAt.Unix()
 
@@ -128,6 +128,7 @@ func (s *Service) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Add("Authorization", auth.TokenPrefix+res.AccessToken)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(&res)
 }
