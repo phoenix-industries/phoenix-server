@@ -10,6 +10,8 @@ CREATE TABLE user_sessions (
 	updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	deleted_at TIMESTAMP WITH TIME ZONE
 );
+CREATE INDEX user_sessions_token_idx ON user_sessions(token);
 
 -- +goose Down
 DROP TABLE user_sessions;
+DROP INDEX user_sessions_token_idx;
