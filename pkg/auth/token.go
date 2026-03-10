@@ -8,6 +8,8 @@ import (
 
 const (
 	tokenLength = 32
+	TokenType   = "Bearer"
+	TokenPrefix = TokenType + " "
 )
 
 func GenerateToken() (string, error) {

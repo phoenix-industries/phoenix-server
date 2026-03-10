@@ -110,7 +110,7 @@ func (s *Service) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			return httputil.Error(err, "failed to generate jwt", http.StatusInternalServerError)
 		}
 
-		res.UserID = userID
+		res.TokenType = auth.TokenType
 		res.AccessToken = jwt
 		res.RefreshToken = refreshToken
 		res.ExpiresAt = session.ExpiresAt.Unix()

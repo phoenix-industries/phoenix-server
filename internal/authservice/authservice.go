@@ -45,7 +45,7 @@ func (s *Service) Register(k *kernel.Kernel) (http.Handler, error) {
 }
 
 type AuthResponse struct {
-	UserID       string `json:"user_id"`
+	TokenType    string `json:"token_type"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresAt    int64  `json:"expires_at"`

@@ -50,7 +50,7 @@ func (a *Auth) GenerateJWT(subject, audience string, role Role) (string, error) 
 func (a *Auth) ParseJWT(token string) (*jwt.Token, error) {
 	t, err := jwt.ParseWithClaims(token, &JWTClaims{}, a.jwtParseKeyFunc, jwt.WithLeeway(5*time.Second))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse token: %w", err)
 	} else if !t.Valid {
 		return nil, errors.New("invalid token")
 	} else if _, ok := t.Claims.(*JWTClaims); !ok {

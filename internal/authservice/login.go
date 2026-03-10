@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database/models"
 	"github.com/phoenix-industries/phoenix-server/pkg/httputil"
 	"github.com/phoenix-industries/phoenix-server/pkg/validate"
@@ -90,7 +91,7 @@ func (s *Service) LoginHandler(w http.ResponseWriter, r *http.Request) {
 			return httputil.Error(err, "failed to generate jwt", http.StatusInternalServerError)
 		}
 
-		res.UserID = user.ID
+		res.TokenType = auth.TokenType
 		res.AccessToken = jwt
 		res.RefreshToken = refreshToken
 		res.ExpiresAt = session.ExpiresAt.Unix()
@@ -108,6 +109,7 @@ func (s *Service) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Add("Authorization", auth.TokenPrefix+res.AccessToken)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(&res)
 }
