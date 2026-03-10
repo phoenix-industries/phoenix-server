@@ -2,6 +2,7 @@ package httputil
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -36,6 +37,9 @@ func (e *HTTPError) Unwrap() error {
 }
 
 func (e *HTTPError) Wrap() error {
+	if e.err == nil {
+		return errors.New(e.msg)
+	}
 	return fmt.Errorf("%s: %w", e.msg, e.err)
 }
 
