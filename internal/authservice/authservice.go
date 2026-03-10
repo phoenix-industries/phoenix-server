@@ -31,6 +31,7 @@ func (s *Service) Register(k *kernel.Kernel) (http.Handler, error) {
 	s.logger = k.Logger().WithGroup(s.Name())
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", httputil.NotFoundHandler(s.logger))
 	mux.HandleFunc("POST /register", s.RegisterHandler)
 	mux.HandleFunc("POST /login", s.LoginHandler)
 	mux.HandleFunc("POST /logout", s.LogoutHandler)

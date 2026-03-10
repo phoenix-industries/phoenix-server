@@ -95,12 +95,7 @@ func run(ctx context.Context) error {
 	logger.Info("server started", "port", *port)
 
 	mux := kernel.Mux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if err := httputil.Error(nil, "are you lost bud?", http.StatusNotFound).WriteJSON(w); err != nil {
-			logger.ErrorContext(r.Context(), "encoding json error failed, that's an error for an error, congrats!", "error", err)
-			http.Error(w, "something went wrong", http.StatusInternalServerError)
-		}
-	})
+	mux.HandleFunc("/", httputil.NotFoundHandler(logger))
 
 	return http.ListenAndServe(*port, mux)
 }
