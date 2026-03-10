@@ -56,7 +56,7 @@ func UserSessionInsert(ctx context.Context, db database.DB, userSession *UserSes
 }
 
 func UserSessionGetByID(ctx context.Context, db database.DB, id string) (*UserSession, error) {
-	stmt := `SELECT * FROM user_sessions WHERE id = $1`
+	stmt := `SELECT * FROM user_sessions WHERE id = $1 and deleted_at is null`
 	var userSession UserSession
 	if err := pgxscan.Get(ctx, db, &userSession, stmt, id); err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func UserSessionGetByID(ctx context.Context, db database.DB, id string) (*UserSe
 }
 
 func UserSessionGetByToken(ctx context.Context, db database.DB, token string) (*UserSession, error) {
-	stmt := `SELECT * FROM user_sessions WHERE token = $1`
+	stmt := `SELECT * FROM user_sessions WHERE token = $1 and deleted_at is null`
 	var userSession UserSession
 	if err := pgxscan.Get(ctx, db, &userSession, stmt, token); err != nil {
 		return nil, err
@@ -74,10 +74,16 @@ func UserSessionGetByToken(ctx context.Context, db database.DB, token string) (*
 }
 
 func UserSessionGetByUserID(ctx context.Context, db database.DB, userID string) (*UserSession, error) {
-	stmt := `SELECT * FROM user_sessions WHERE user_id = $1`
+	stmt := `SELECT * FROM user_sessions WHERE user_id = $1 and deleted_at is null`
 	var userSession UserSession
 	if err := pgxscan.Get(ctx, db, &userSession, stmt, userID); err != nil {
 		return nil, err
 	}
 	return &userSession, nil
+}
+
+func UserSessionDeleteByID(ctx context.Context, db database.DB, id string) error {
+	stmt := `UPDATE user_sessions SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 and deleted_at is null`
+	_, err := db.Exec(ctx, stmt, id)
+	return err
 }
