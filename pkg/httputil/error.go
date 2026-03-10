@@ -7,6 +7,11 @@ import (
 	"net/http"
 )
 
+var (
+	ErrInvalidRequest = errors.New("invalid request")
+	ErrUnauthorized   = errors.New("unauthorized")
+)
+
 type HTTPError struct {
 	msg  string
 	err  error
@@ -52,4 +57,12 @@ func (e *HTTPError) WriteJSON(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(e.code)
 	return json.NewEncoder(w).Encode(map[string]string{"error": e.msg})
+}
+
+func ErrorBadRequest() *HTTPError {
+	return Error(nil, ErrInvalidRequest.Error(), http.StatusBadRequest)
+}
+
+func ErrorUnauthorized() *HTTPError {
+	return Error(nil, ErrUnauthorized.Error(), http.StatusUnauthorized)
 }
