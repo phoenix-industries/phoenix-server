@@ -86,9 +86,7 @@ func run(ctx context.Context) error {
 	}
 
 	kernel := kernel.NewKernel(db, auth, logger)
-	if err := kernel.Run(
-		authservice.New(),
-	); err != nil {
+	if err := kernel.Run(authservice.New()); err != nil {
 		return err
 	}
 
@@ -97,5 +95,11 @@ func run(ctx context.Context) error {
 	mux := kernel.Mux()
 	mux.HandleFunc("/", httputil.NotFoundHandler(logger))
 
-	return http.ListenAndServe(*port, mux)
+	middleware := httputil.NewMiddleware(logger)
+	handler := httputil.ChainMiddlewares(
+		middleware.Recovery,
+		middleware.Logging,
+	)(mux)
+
+	return http.ListenAndServe(*port, handler)
 }
