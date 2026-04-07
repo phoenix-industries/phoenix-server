@@ -129,3 +129,8 @@ migrations/fix:
 migrations/validate:
 	$(GOOSE_CMD) validate
 .PHONY: migrations/validate
+
+## postgres/run: run postgres in a container
+postgres/run:
+	podman compose up postgres -d
+.PHONY: postgres/run
