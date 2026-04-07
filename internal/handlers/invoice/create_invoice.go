@@ -1,0 +1,32 @@
+package invoice
+
+import (
+	"net/http"
+	"phoenix/internal/models"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+type Handler struct {
+	DB *gorm.DB
+}
+
+func NewHandler(db *gorm.DB) *Handler {
+	return &Handler{DB: db}
+}
+
+func (h *Handler) Create(c *gin.Context) {
+	var invoice models.Invoice
+	if err := c.ShouldBindJSON(&invoice); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.DB.Create(&invoice).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Invoice created successfully", "data": invoice})
+}
