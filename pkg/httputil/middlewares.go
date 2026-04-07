@@ -33,6 +33,10 @@ func ChainMiddlewares(middlewares ...func(http.Handler) http.Handler) func(http.
 	}
 }
 
+func (m *Middleware) Chain(middlewares ...func(http.Handler) http.Handler) func(http.Handler) http.Handler {
+	return ChainMiddlewares(middlewares...)
+}
+
 func (m *Middleware) Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
