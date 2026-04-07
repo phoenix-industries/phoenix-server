@@ -14,7 +14,7 @@ type logoutData struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func (s *Service) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	token, err := httputil.GetAccessToken(r)
 	if err != nil {
 		httputil.ErrorBadRequest().WriteJSON(w)

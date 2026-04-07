@@ -32,18 +32,12 @@ func (s *Service) Register(k *kernel.Kernel) (http.Handler, error) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", httputil.NotFoundHandler(s.logger))
-	mux.HandleFunc("POST /register", s.RegisterHandler)
-	mux.HandleFunc("POST /login", s.LoginHandler)
-	mux.HandleFunc("POST /logout", s.LogoutHandler)
-	mux.HandleFunc("POST /refresh", s.RefreshHandler)
+	mux.HandleFunc("POST /register", s.HandleRegister)
+	mux.HandleFunc("POST /login", s.HandleLogin)
+	mux.HandleFunc("POST /logout", s.HandleLogout)
+	mux.HandleFunc("POST /refresh", s.HandleRefresh)
 
-	middleware := httputil.NewMiddleware(s.logger)
-	handler := httputil.ChainMiddlewares(
-		middleware.Logging,
-		middleware.Recovery,
-	)(mux)
-
-	return handler, nil
+	return mux, nil
 }
 
 type AuthResponse struct {

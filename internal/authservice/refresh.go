@@ -16,7 +16,7 @@ type refreshData struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func (s *Service) RefreshHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	var data refreshData
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)

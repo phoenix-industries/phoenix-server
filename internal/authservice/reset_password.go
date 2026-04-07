@@ -2,7 +2,7 @@ package authservice
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
@@ -12,56 +12,68 @@ import (
 	"github.com/phoenix-industries/phoenix-server/pkg/validate"
 )
 
-const (
-	errInvalidCredentials = "invalid credentials"
-)
-
-type loginData struct {
-	Identifier string `json:"identifier"`
-	Password   string `json:"password"`
+type resetPasswordData struct {
+	Password    string `json:"password"`
+	NewPassword string `json:"new_password"`
 }
 
-func (s *Service) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	var data loginData
+func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
+	var data resetPasswordData
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
 		return
 	}
 	defer r.Body.Close()
+	if data.Password == "" {
+		httputil.ErrorBadRequest().WriteJSON(w)
+		return
+	}
+	if data.NewPassword == "" {
+		httputil.ErrorBadRequest().WriteJSON(w)
+		return
+	}
+
+	if err := validate.Password(data.NewPassword); err != nil {
+		httputil.Error(nil, err.Error(), http.StatusBadRequest).WriteJSON(w)
+		return
+	}
+
+	token, err := httputil.GetAccessToken(r)
+	if err != nil {
+		httputil.ErrorUnauthorized().WriteJSON(w)
+		return
+	}
+	jwt, err := s.auth.ParseJWT(token)
+	if err != nil {
+		httputil.ErrorUnauthorized().WriteJSON(w)
+		return
+	}
 
 	ctx := r.Context()
 	res := AuthResponse{}
 	err := s.db.InTx(ctx, func(tx pgx.Tx) error {
-		var user *models.User
-		if validate.IsEmail(data.Identifier) {
-			u, err := models.UserGetByEmail(ctx, s.db.Pool(), data.Identifier)
-			if err != nil {
-				if errors.Is(err, pgx.ErrNoRows) {
-					return httputil.Error(nil, errInvalidCredentials, http.StatusUnauthorized)
-				}
-				return httputil.Error(err, "request failed", http.StatusInternalServerError)
-			}
-			user = u
-		} else if validate.IsPhoneNumber(data.Identifier) {
-			u, err := models.UserGetByPhone(ctx, s.db.Pool(), data.Identifier)
-			if err != nil {
-				if errors.Is(err, pgx.ErrNoRows) {
-					return httputil.Error(nil, errInvalidCredentials, http.StatusUnauthorized)
-				}
-				return httputil.Error(err, "request failed", http.StatusInternalServerError)
-			}
-			user = u
-		} else {
-			return httputil.Error(nil, errInvalidCredentials, http.StatusUnauthorized)
+		user, err := models.UserGetByID(ctx, tx, data.Password)
+		if err != nil {
+			return fmt.Errorf("failed to get user: %w", err)
 		}
 		if user == nil {
-			return httputil.Error(nil, errInvalidCredentials, http.StatusUnauthorized)
+			return httputil.Error(nil, "invalid credentials", http.StatusUnauthorized)
 		}
 
 		if valid, err := s.auth.VerifyPassword(data.Password, user.Password); err != nil {
 			return httputil.Error(err, "request failed", http.StatusInternalServerError)
 		} else if !valid {
-			return httputil.Error(nil, errInvalidCredentials, http.StatusUnauthorized)
+			return httputil.Error(nil, "invalid credentials", http.StatusUnauthorized)
+		}
+
+		hash, err := s.auth.HashPassword(data.NewPassword)
+		if err != nil {
+			return httputil.Error(err, "failed to hash password", http.StatusInternalServerError)
+		}
+		user.Password = hash
+
+		if err := models.UserUpdate(ctx, tx, user); err != nil {
+			return httputil.Error(err, "failed to update user", http.StatusInternalServerError)
 		}
 
 		sessionID, err := s.auth.GenerateID()
@@ -100,11 +112,11 @@ func (s *Service) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if httpErr := httputil.CastError(err); httpErr != nil {
-			s.logger.ErrorContext(ctx, "error occured in login handler", "error", httpErr.Wrap())
+			s.logger.ErrorContext(ctx, "error occured in reset password handler", "error", httpErr.Wrap())
 			httpErr.WriteJSON(w)
 			return
 		}
-		s.logger.ErrorContext(ctx, "error occured in login handler", "error", err)
+		s.logger.ErrorContext(ctx, "error occured in reset password handler", "error", err)
 		http.Error(w, "something went wrong", http.StatusInternalServerError)
 		return
 	}

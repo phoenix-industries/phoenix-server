@@ -24,7 +24,7 @@ type registerData struct {
 	Birthdate   time.Time `json:"birthdate"`
 }
 
-func (s *Service) RegisterHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	var data registerData
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
