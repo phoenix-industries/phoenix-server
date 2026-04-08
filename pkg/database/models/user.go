@@ -86,6 +86,15 @@ func UserGetByID(ctx context.Context, db database.DB, id string) (*User, error) 
 	return &user, nil
 }
 
+func UserGetAll(ctx context.Context, db database.DB, limit int, offset int) ([]User, error) {
+	stmt := `SELECT * FROM users WHERE deleted_at is null ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	var users []User
+	if err := pgxscan.Select(ctx, db, &users, stmt, limit, offset); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 func UserGetByEmail(ctx context.Context, db database.DB, email string) (*User, error) {
 	stmt := `SELECT * FROM users WHERE email = $1 and deleted_at is null`
 	var user User
@@ -129,4 +138,17 @@ func UserExistsWithPhone(ctx context.Context, db database.DB, phone string) (boo
 		return false, err
 	}
 	return exists, nil
+}
+
+func UserUpdate(ctx context.Context, db database.DB, user *User) error {
+	stmt := `
+		UPDATE users
+		SET name = $2, email = $3, phone = $4, city = $5, governorate = $6, address = $7, birthdate = $8
+		WHERE id = $1
+	`
+	if _, err := db.Exec(ctx, stmt, user.ID, user.Name, user.Email, user.Phone, user.City, user.Governorate, user.Address, user.Birthdate); err != nil {
+		println(err.Error())
+		return err
+	}
+	return nil
 }
