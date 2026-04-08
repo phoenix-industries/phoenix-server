@@ -36,6 +36,9 @@ func (s *Service) Register(k *kernel.Kernel) (http.Handler, error) {
 	mux.HandleFunc("GET /users/{id}", s.HandleGetUserByID)
 	mux.HandleFunc("PATCH /users/{id}", s.HandleUpdateUser)
 
+	mux.HandleFunc("GET /products", s.HandleListProducts)
+	mux.HandleFunc("GET /products/{id}", s.HandleGetProductByID)
+
 	handler := httputil.ChainMiddlewares(httputil.AuthGuardMiddleware(s.auth))(mux)
 	return handler, nil
 }
