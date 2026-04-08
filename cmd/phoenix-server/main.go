@@ -9,6 +9,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/joho/godotenv"
+
+	"github.com/phoenix-industries/phoenix-server/internal/apiservice/v1"
 	"github.com/phoenix-industries/phoenix-server/internal/authservice"
 	"github.com/phoenix-industries/phoenix-server/internal/buildinfo"
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
@@ -23,6 +26,12 @@ var port = flag.String("port", defaultPort, "")
 
 func main() {
 	flag.Parse()
+
+	// TODO: load env files explicitly
+	if err := godotenv.Load(); err != nil {
+		slog.Error("failed to load environment variables", "error", err)
+		os.Exit(1)
+	}
 
 	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
@@ -86,7 +95,7 @@ func run(ctx context.Context) error {
 	}
 
 	kernel := kernel.NewKernel(db, auth, logger)
-	if err := kernel.Run(authservice.New()); err != nil {
+	if err := kernel.Run(authservice.New(), apiservice.New()); err != nil {
 		return err
 	}
 
@@ -95,10 +104,9 @@ func run(ctx context.Context) error {
 	mux := kernel.Mux()
 	mux.HandleFunc("/", httputil.NotFoundHandler(logger))
 
-	middleware := httputil.NewMiddleware(logger)
 	handler := httputil.ChainMiddlewares(
-		middleware.Recovery,
-		middleware.Logging,
+		httputil.RecoveryMiddleware(logger),
+		httputil.LoggingMiddleware(logger),
 	)(mux)
 
 	return http.ListenAndServe(*port, handler)
