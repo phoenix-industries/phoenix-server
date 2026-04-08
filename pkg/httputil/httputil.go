@@ -37,3 +37,27 @@ func GetAccessToken(r *http.Request) (string, error) {
 	}
 	return token, nil
 }
+
+func GetUserID(auther *auth.Auth, r *http.Request) (string, error) {
+	token, err := GetAccessToken(r)
+	if err != nil {
+		return "", err
+	}
+	jwt, err := auther.ParseJWT(token)
+	if err != nil {
+		return "", err
+	}
+	userID, err := jwt.Claims.GetSubject()
+	if err != nil {
+		return "", err
+	}
+	return userID, nil
+}
+
+func CheckAuth(auther *auth.Auth, r *http.Request) error {
+	_, err := GetAccessToken(r)
+	if err != nil {
+		return ErrUnauthorized
+	}
+	return nil
+}
