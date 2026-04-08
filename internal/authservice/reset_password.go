@@ -38,21 +38,17 @@ func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := httputil.GetAccessToken(r)
+	userID, err := httputil.GetUserID(s.auth, r)
 	if err != nil {
 		httputil.ErrorUnauthorized().WriteJSON(w)
-		return
-	}
-	jwt, err := s.auth.ParseJWT(token)
-	if err != nil {
-		httputil.ErrorUnauthorized().WriteJSON(w)
+		s.logger.ErrorContext(r.Context(), "error occured in reset password handler", "error", err, "userID", userID)
 		return
 	}
 
 	ctx := r.Context()
 	res := AuthResponse{}
-	err := s.db.InTx(ctx, func(tx pgx.Tx) error {
-		user, err := models.UserGetByID(ctx, tx, data.Password)
+	err = s.db.InTx(ctx, func(tx pgx.Tx) error {
+		user, err := models.UserGetByID(ctx, tx, userID)
 		if err != nil {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
@@ -123,5 +119,7 @@ func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Authorization", auth.TokenPrefix+res.AccessToken)
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(&res)
+	if err := json.NewEncoder(w).Encode(&res); err != nil {
+		httputil.Error(err, "failed to return response", http.StatusInternalServerError).WriteJSON(w)
+	}
 }

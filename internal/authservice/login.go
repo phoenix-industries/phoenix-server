@@ -111,5 +111,7 @@ func (s *Service) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Authorization", auth.TokenPrefix+res.AccessToken)
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(&res)
+	if err := json.NewEncoder(w).Encode(&res); err != nil {
+		httputil.Error(err, "failed to return response", http.StatusInternalServerError).WriteJSON(w)
+	}
 }

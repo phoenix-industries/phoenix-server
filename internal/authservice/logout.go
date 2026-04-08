@@ -18,15 +18,10 @@ func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	token, err := httputil.GetAccessToken(r)
 	if err != nil {
 		httputil.ErrorBadRequest().WriteJSON(w)
+		s.logger.ErrorContext(r.Context(), "error occured in logout handler while geting the access token", "error", err, "token", token)
 		return
 	}
-	jwt, err := s.auth.ParseJWT(token)
-	if err != nil {
-		httputil.ErrorBadRequest().WriteJSON(w)
-		s.logger.ErrorContext(r.Context(), "token parsing error occured in logout handler", "error", err, "token", token)
-		return
-	}
-	userID, err := jwt.Claims.GetSubject()
+	userID, err := httputil.GetUserID(s.auth, r)
 	if err != nil {
 		httputil.ErrorBadRequest().WriteJSON(w)
 		s.logger.ErrorContext(r.Context(), "error occured in logout handler while geting the subject claim from jwt token", "error", err, "token", token)
@@ -34,7 +29,7 @@ func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	if userID == "" {
 		httputil.ErrorUnauthorized().WriteJSON(w)
-		s.logger.ErrorContext(r.Context(), "invalid token spotted in logout handler", "token", token)
+		s.logger.ErrorContext(r.Context(), "invalid token spotted in logout handler", "userID", userID)
 		return
 	}
 
@@ -74,5 +69,7 @@ func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "ok"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "ok"}); err != nil {
+		httputil.Error(err, "failed to return response", http.StatusInternalServerError).WriteJSON(w)
+	}
 }
