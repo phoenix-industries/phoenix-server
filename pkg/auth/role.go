@@ -15,16 +15,16 @@ func (r Role) String() string {
 	return string(r)
 }
 
-func (r Role) Scan(value any) error {
+func (r *Role) Scan(value any) error {
 	switch value.(string) {
 	case "root":
-		r = RoleRoot
+		*r = RoleRoot
 	case "admin":
-		r = RoleAdmin
+		*r = RoleAdmin
 	case "manager":
-		r = RoleManager
+		*r = RoleManager
 	case "member":
-		r = RoleMember
+		*r = RoleMember
 	default:
 		return errors.New("invalid user role")
 	}
