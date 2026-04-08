@@ -5,8 +5,7 @@ env_files = [".env", ".env.dev"]
 [build]
 cmd = "DEVMODE=1 make bin/phoenix-server"
 bin = "bin/phoenix-server"
-args_bin = ["-port", ":5050"]
-entrypoint = ["./bin/phoenix-server", "-port", ":5050"]
+entrypoint = ["./bin/phoenix-server"]
 exclude_regex = ["_test\\.go"]
 
 [log]
