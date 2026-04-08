@@ -54,6 +54,22 @@ func GetUserID(auther *auth.Auth, r *http.Request) (string, error) {
 	return userID, nil
 }
 
+func GetUserRole(auther *auth.Auth, r *http.Request) (auth.Role, error) {
+	token, err := GetAccessToken(r)
+	if err != nil {
+		return "", err
+	}
+	jwt, err := auther.ParseJWT(token)
+	if err != nil {
+		return "", err
+	}
+	claims, err := auther.GetJWTClaims(jwt)
+	if err != nil {
+		return "", err
+	}
+	return claims.Role, nil
+}
+
 func CheckAuth(auther *auth.Auth, r *http.Request) error {
 	_, err := GetAccessToken(r)
 	if err != nil {
