@@ -67,6 +67,14 @@ func (a *Auth) ParseJWT(token string) (*jwt.Token, error) {
 	return t, nil
 }
 
+func (a *Auth) GetJWTClaims(token *jwt.Token) (*JWTClaims, error) {
+	tokenClaims, ok := token.Claims.(*JWTClaims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
+	}
+	return tokenClaims, nil
+}
+
 func (a *Auth) jwtParseKeyFunc(token *jwt.Token) (any, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, errors.New("invalid token")
