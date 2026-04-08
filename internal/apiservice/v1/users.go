@@ -1,0 +1,125 @@
+package apiservice
+
+import (
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/phoenix-industries/phoenix-server/pkg/database/models"
+	"github.com/phoenix-industries/phoenix-server/pkg/httputil"
+)
+
+type userUpdateData struct {
+	Name        *string    `json:"name"`
+	Email       *string    `json:"email"`
+	Phone       *string    `json:"phone"`
+	City        *string    `json:"city"`
+	Governorate *string    `json:"governorate"`
+	Address     *string    `json:"address"`
+	Birthdate   *time.Time `json:"birthdate"`
+}
+
+func (s *Service) HandleGetUsers(w http.ResponseWriter, r *http.Request) {
+	limit := 10
+	offset := 0
+
+	query := r.URL.Query()
+	if limitQuery := query.Get("limit"); limitQuery != "" {
+		limit, _ = strconv.Atoi(limitQuery)
+		if limit == 0 {
+			limit = 10
+		}
+	}
+	if offsetQuery := query.Get("offset"); offsetQuery != "" {
+		offset, _ = strconv.Atoi(offsetQuery)
+	}
+
+	if limit > 20 {
+		httputil.Error(nil, "limit cannot be greater than 20", http.StatusBadRequest).WriteJSON(w)
+		return
+	}
+
+	ctx := r.Context()
+	users, err := models.UserGetAll(ctx, s.db.Pool(), limit, offset)
+	if err != nil {
+		httputil.Error(err, "failed to get users", http.StatusInternalServerError).WriteJSON(w)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(users); err != nil {
+		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
+	}
+}
+
+func (s *Service) HandleGetUserByID(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		httputil.Error(nil, "invalid request", http.StatusBadRequest).WriteJSON(w)
+		return
+	}
+
+	ctx := r.Context()
+	user, err := models.UserGetByID(ctx, s.db.Pool(), id)
+	if err != nil {
+		httputil.Error(err, "failed to get user", http.StatusInternalServerError).WriteJSON(w)
+		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
+	}
+}
+
+func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		httputil.Error(nil, "invalid request", http.StatusBadRequest).WriteJSON(w)
+		return
+	}
+
+	var updateData userUpdateData
+	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
+		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
+		return
+	}
+	defer r.Body.Close()
+
+	user, err := models.UserGetByID(r.Context(), s.db.Pool(), id)
+	if err != nil {
+		httputil.Error(err, "failed to get user", http.StatusInternalServerError).WriteJSON(w)
+		return
+	}
+	if updateData.Name != nil {
+		user.Name = *updateData.Name
+	}
+	if updateData.Email != nil {
+		user.Email = *updateData.Email
+	}
+	if updateData.Phone != nil {
+		user.Phone = *updateData.Phone
+	}
+	if updateData.City != nil {
+		user.City = *updateData.City
+	}
+	if updateData.Governorate != nil {
+		user.Governorate = *updateData.Governorate
+	}
+	if updateData.Address != nil {
+		user.Address = *updateData.Address
+	}
+	if updateData.Birthdate != nil {
+		user.Birthdate = *updateData.Birthdate
+	}
+	if err := models.UserUpdate(r.Context(), s.db.Pool(), user); err != nil {
+		httputil.Error(err, "failed to update user", http.StatusInternalServerError).WriteJSON(w)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "ok"}); err != nil {
+		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
+	}
+}
