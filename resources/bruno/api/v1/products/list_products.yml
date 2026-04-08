@@ -1,11 +1,11 @@
 info:
-  name: get_users
+  name: list_products
   type: http
   seq: 1
 
 http:
   method: GET
-  url: "{{BASE_URL}}/api/v1/users?offset=0&limit=10"
+  url: "{{BASE_URL}}/api/v1/products?offset=0&limit=10&condition=good&price=00-999999&category=lol"
   headers:
     - name: Authorization
       value: "{{TOKEN_TYPE}} {{ACCESS_TOKEN}}"
@@ -15,6 +15,15 @@ http:
       type: query
     - name: limit
       value: "10"
+      type: query
+    - name: condition
+      value: good
+      type: query
+    - name: price
+      value: 00-999999
+      type: query
+    - name: category
+      value: lol
       type: query
   auth: inherit
 
