@@ -104,3 +104,21 @@ func (s *Service) HandleGetProductByID(w http.ResponseWriter, r *http.Request) {
 		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
 	}
 }
+
+func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		httputil.Error(nil, "invalid request", http.StatusBadRequest).WriteJSON(w)
+		return
+	}
+
+	if err := models.ProductDelete(r.Context(), s.db.Pool(), id); err != nil {
+		httputil.Error(err, "failed to delete product", http.StatusInternalServerError).WriteJSON(w)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "ok"}); err != nil {
+		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
+	}
+}
