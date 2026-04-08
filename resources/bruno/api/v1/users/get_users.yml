@@ -1,0 +1,25 @@
+info:
+  name: get_users
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/api/v1/users?offset=0&limit=10"
+  headers:
+    - name: Authorization
+      value: "{{TOKEN_TYPE}} {{ACCESS_TOKEN}}"
+  params:
+    - name: offset
+      value: "0"
+      type: query
+    - name: limit
+      value: "10"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

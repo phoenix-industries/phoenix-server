@@ -19,9 +19,9 @@ request:
     - name: HOST
       value: localhost
     - name: PORT
-      value: "5050"
+      value: "5000"
     - name: BASE_URL
-      value: http://localhost:5050
+      value: http://localhost:5000
 bundled: false
 extensions:
   bruno:
