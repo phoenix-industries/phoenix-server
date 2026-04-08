@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -33,25 +34,50 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	go func() {
+		<-ctx.Done() // wait for first signal
+		forceCtx, forceStop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+		defer forceStop()
+		<-forceCtx.Done()
+		slog.Warn("second shutdown signal received - forcing immediate exit")
+		os.Exit(130)
+	}()
 
 	defer func() {
-		done()
 		if r := recover(); r != nil {
 			slog.Error("application panic", "panic", r)
 			os.Exit(1)
 		}
 	}()
 
-	err := run(ctx)
-	done()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if err := run(ctx); err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
+		}
+	}()
 
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
+	select {
+	case <-done:
+		return
+	case <-ctx.Done():
+		slog.Info("shutdown signal received, waiting for server to exit gracefully")
 	}
 
-	slog.Info("successfully exited")
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer shutdownCancel()
+
+	select {
+	case <-done:
+		slog.Info("successfully shutdown server gracefully")
+	case <-shutdownCtx.Done():
+		slog.Info("shutdown timeout reached, forcing server to exit")
+		os.Exit(1)
+	}
 }
 
 func run(ctx context.Context) error {
@@ -66,7 +92,12 @@ func run(ctx context.Context) error {
 
 	logger := slog.Default()
 
-	logger.Info("build info", "build_tag", buildinfo.BuildTag, "go_version", buildinfo.GoVersion, "system_tag", buildinfo.SystemTag)
+	logger.Info(
+		"build info",
+		"build_tag", buildinfo.BuildTag,
+		"go_version", buildinfo.GoVersion,
+		"system_tag", buildinfo.SystemTag,
+	)
 	if buildinfo.DevMode() {
 		logger.Info("dev mode enabled")
 	}
@@ -99,8 +130,6 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	logger.Info("server started", "port", *port)
-
 	mux := kernel.Mux()
 	mux.HandleFunc("/", httputil.NotFoundHandler(logger))
 
@@ -109,5 +138,36 @@ func run(ctx context.Context) error {
 		httputil.LoggingMiddleware(logger),
 	)(mux)
 
-	return http.ListenAndServe(*port, handler)
+	srv := http.Server{
+		Addr:         *port,
+		Handler:      handler,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	serverErr := make(chan error, 1)
+	go func() {
+		logger.Info("server started", "port", *port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			serverErr <- err
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		logger.Info("shutting down http server")
+		shutdownError := srv.Shutdown(ctx)
+		if shutdownError != nil {
+			logger.Error("server shutdown failed", "error", err)
+		}
+		select {
+		case err := <-serverErr:
+			return err
+		default:
+			return shutdownError
+		}
+	case err := <-serverErr:
+		return err
+	}
 }
