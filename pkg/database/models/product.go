@@ -19,7 +19,7 @@ type Product struct {
 	Price        int        `db:"price" json:"price"`
 	CategoryID   string     `db:"category_id" json:"-"`
 	Condition    string     `db:"condition" json:"condition"`
-	MiniumAge    int        `db:"minimum_age" json:"minimum_age"`
+	MinimumAge   int        `db:"minimum_age" json:"minimum_age"`
 	MaximumAge   int        `db:"maximum_age" json:"maximum_age"`
 	TargetGender string     `db:"target_gender" json:"target_gender"`
 	Description  string     `db:"description" json:"description"`
@@ -92,8 +92,8 @@ func ProductList(ctx context.Context, db database.DB, requireApproval bool, limi
 }
 
 func ProductUpdate(ctx context.Context, db database.DB, product *Product) error {
-	stmt := `UPDATE products SET name = $2, price = $3, category_id = $4, condition = $5, tags = $6, minium_age = $7, maximum_age = $8, description = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL`
-	_, err := db.Exec(ctx, stmt, product.ID, product.Name, product.Price, product.CategoryID, product.Condition, product.Tags, product.MiniumAge, product.MaximumAge, product.Description)
+	stmt := `UPDATE products SET name = $2, price = $3, category_id = $4, condition = $5, tags = $6, minimum_age = $7, maximum_age = $8, description = $9, updated_at = CURRENT_TIMESTAMP, approved = FALSE WHERE id = $1 AND deleted_at IS NULL`
+	_, err := db.Exec(ctx, stmt, product.ID, product.Name, product.Price, product.CategoryID, product.Condition, product.Tags, product.MinimumAge, product.MaximumAge, product.Description)
 	return err
 }
 
