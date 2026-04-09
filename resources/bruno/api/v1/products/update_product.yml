@@ -1,0 +1,32 @@
+info:
+  name: update_product
+  type: http
+  seq: 3
+
+http:
+  method: PATCH
+  url: "{{BASE_URL}}/api/v1/products/12123"
+  headers:
+    - name: Authorization
+      value: "{{TOKEN_TYPE}} {{ACCESS_TOKEN}}"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "asdasdqeq",
+        "price": 30000,
+        "condition": "good",
+        "minimum_age": 18,
+        "maximum_age": 99,
+        "target_gender": "male",
+        "description": "",
+        "tags": null,
+        "category": "lol"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
