@@ -48,5 +48,5 @@ func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) *httputil
 		return httputil.ResponseFromError(err)
 	}
 
-	return httputil.NewResponseOK(http.StatusOK, nil)
+	return httputil.NewResponseOK(http.StatusNoContent, nil)
 }

@@ -45,6 +45,7 @@ func (s *Service) Register(ctx context.Context, env *kernel.Env) error {
 	r.HandleFunc("POST /login", s.HandleLogin)
 	r.HandleFunc("POST /logout", s.HandleLogout)
 	r.HandleFunc("POST /refresh", s.HandleRefresh)
+	r.HandleFunc("PUT /password", s.HandleResetPassword)
 
 	return nil
 }

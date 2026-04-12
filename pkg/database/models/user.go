@@ -72,10 +72,8 @@ func UserInsert(ctx context.Context, db database.DB, user *User) error {
 		VALUES
 		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
-	if _, err := db.Exec(ctx, query, user.ID, user.Name, user.Email, user.Phone, user.Role, user.City, user.Governorate, user.Address, user.Password, user.Birthdate); err != nil {
-		return err
-	}
-	return nil
+	_, err := db.Exec(ctx, query, user.ID, user.Name, user.Email, user.Phone, user.Role, user.City, user.Governorate, user.Address, user.Password, user.Birthdate)
+	return err
 }
 
 func UserGetByID(ctx context.Context, db database.DB, id string) (*User, error) {
@@ -201,4 +199,14 @@ func UserUpdate(ctx context.Context, db database.DB, user *User) error {
 		return err
 	}
 	return nil
+}
+
+func UserUpdatePassword(ctx context.Context, db database.DB, id, password string) error {
+	query := `
+		UPDATE users
+		SET password = $2, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND deleted_at IS null
+	`
+	_, err := db.Exec(ctx, query, id, password)
+	return err
 }

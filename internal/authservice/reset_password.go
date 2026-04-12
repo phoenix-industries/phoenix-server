@@ -21,12 +21,12 @@ func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) *h
 	if err := httputil.BodyJSON(r, &data); err != nil {
 		return httputil.ErrInvalidBody.Response()
 	}
-	if data.Password == "" || data.NewPassword == "" {
+	if data.Password == "" || data.NewPassword == "" || data.NewPassword == data.Password {
 		return httputil.ErrBadRequest.Response()
 	}
 
 	if err := validate.Password(data.NewPassword); err != nil {
-		httputil.NewStatusError(nil, err.Error(), http.StatusBadRequest).Response()
+		return httputil.NewStatusError(nil, err.Error(), http.StatusBadRequest).Response()
 	}
 
 	userID, err := httputil.GetUserID(s.auth, r)
@@ -55,9 +55,8 @@ func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) *h
 		if err != nil {
 			return httputil.NewStatusError(err, "failed to hash password", http.StatusInternalServerError)
 		}
-		user.Password = hash
 
-		if err := models.UserUpdate(ctx, tx, user); err != nil {
+		if err := models.UserUpdatePassword(ctx, tx, userID, hash); err != nil {
 			return httputil.NewStatusError(err, "failed to update user", http.StatusInternalServerError)
 		}
 
