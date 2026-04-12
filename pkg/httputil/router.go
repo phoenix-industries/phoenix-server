@@ -1,7 +1,6 @@
 package httputil
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -74,45 +73,8 @@ func (r *Router) wrapHandler(h HandlerFunc) http.Handler {
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		res := h(w, req)
 		if res == nil {
+			// no news is good news
 			res = NewResponseOK(http.StatusOK, nil)
-		}
-		if !res.OK {
-			err := res.EmbededError()
-			msg := "internal server error"
-			code := http.StatusInternalServerError
-			var statusErr *StatusError
-			if err != nil && errors.As(err, &statusErr) {
-				msg = statusErr.Error()
-				code = statusErr.StatusCode()
-				if code == 0 {
-					code = http.StatusInternalServerError
-				}
-				r.logger.ErrorContext(
-					req.Context(),
-					"error in http handler",
-					"path", req.URL.Path,
-					"method", req.Method,
-					"error", statusErr.String(),
-				)
-			}
-
-			res := NewResponseError(code, err)
-			if err := res.WriteJSON(w); err != nil {
-				r.logger.ErrorContext(
-					req.Context(),
-					"failed to encode error response",
-					"path", req.URL.Path,
-					"method", req.Method,
-					"error", err,
-					"original_error", msg,
-				)
-				http.Error(w, "internal server error", http.StatusInternalServerError)
-			}
-			return
-		}
-
-		if res.StatusCode == 0 {
-			res.StatusCode = http.StatusOK
 		}
 		if err := res.WriteJSON(w); err != nil {
 			r.logger.ErrorContext(
@@ -121,6 +83,8 @@ func (r *Router) wrapHandler(h HandlerFunc) http.Handler {
 				"path", req.URL.Path,
 				"method", req.Method,
 				"error", err,
+				"response_error", res.Error,
+				"original_error", res.EmbededError(),
 			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
