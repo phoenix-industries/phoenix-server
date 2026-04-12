@@ -125,49 +125,27 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	kernel := kernel.NewKernel(db, auth, logger)
-	if err := kernel.Run(authservice.New(), apiservice.New()); err != nil {
+	router := httputil.NewRouter(logger.WithGroup("HTTP router"))
+	router.Use(httputil.RecoveryMiddleware(logger))
+	router.Use(httputil.LoggingMiddleware(logger))
+
+	env := kernel.NewEnv(router, db, auth, logger.WithGroup("Kernel"))
+	kernel := kernel.NewKernel(env)
+	if err := kernel.Register(ctx, authservice.New(), apiservice.New()); err != nil {
 		return err
 	}
+	if err := kernel.Start(ctx); err != nil {
+		return err
+	}
+	defer kernel.Stop(ctx)
 
-	mux := kernel.Mux()
-	mux.HandleFunc("/", httputil.NotFoundHandler(logger))
-
-	handler := httputil.ChainMiddlewares(
-		httputil.RecoveryMiddleware(logger),
-		httputil.LoggingMiddleware(logger),
-	)(mux)
-
-	srv := http.Server{
+	srv := &http.Server{
 		Addr:         *port,
-		Handler:      handler,
+		Handler:      router,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	serverErr := make(chan error, 1)
-	go func() {
-		logger.Info("server started", "port", *port)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			serverErr <- err
-		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		logger.Info("shutting down http server")
-		shutdownError := srv.Shutdown(ctx)
-		if shutdownError != nil {
-			logger.Error("server shutdown failed", "error", err)
-		}
-		select {
-		case err := <-serverErr:
-			return err
-		default:
-			return shutdownError
-		}
-	case err := <-serverErr:
-		return err
-	}
+	return httputil.RunServer(ctx, srv, logger)
 }

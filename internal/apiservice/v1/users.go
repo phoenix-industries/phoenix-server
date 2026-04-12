@@ -1,7 +1,6 @@
 package apiservice
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -20,7 +19,7 @@ type userUpdateData struct {
 	Birthdate   *time.Time `json:"birthdate"`
 }
 
-func (s *Service) HandleGetUsers(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleGetUsers(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	limit := 10
 	offset := 0
 
@@ -36,60 +35,47 @@ func (s *Service) HandleGetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if limit > 20 {
-		httputil.Error(nil, "limit cannot be greater than 20", http.StatusBadRequest).WriteJSON(w)
-		return
+		return httputil.NewStatusError(nil, "limit cannot be greater than 20", http.StatusBadRequest).Response()
 	}
 
 	ctx := r.Context()
 	users, err := models.UserGetAll(ctx, s.db.Pool(), limit, offset)
 	if err != nil {
-		httputil.Error(err, "failed to get users", http.StatusInternalServerError).WriteJSON(w)
-		return
+		return httputil.NewStatusError(err, "failed to get users", http.StatusInternalServerError).Response()
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(users); err != nil {
-		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
-	}
+	return httputil.NewResponseOK(http.StatusOK, users)
 }
 
-func (s *Service) HandleGetUserByID(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleGetUserByID(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	id := r.PathValue("id")
 	if id == "" {
-		httputil.Error(nil, "invalid request", http.StatusBadRequest).WriteJSON(w)
-		return
+		return httputil.NewStatusError(nil, "invalid request", http.StatusBadRequest).Response()
 	}
 
-	ctx := r.Context()
-	user, err := models.UserGetByID(ctx, s.db.Pool(), id)
+	user, err := models.UserGetByID(r.Context(), s.db.Pool(), id)
 	if err != nil {
-		httputil.Error(err, "failed to get user", http.StatusInternalServerError).WriteJSON(w)
-		return
+		return httputil.NewStatusError(err, "failed to get user", http.StatusInternalServerError).Response()
 	}
-	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(user); err != nil {
-		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
-	}
+
+	return httputil.NewResponseOK(http.StatusOK, user)
 }
 
-func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	id := r.PathValue("id")
 	if id == "" {
-		httputil.Error(nil, "invalid request", http.StatusBadRequest).WriteJSON(w)
-		return
+		return httputil.NewStatusError(nil, "invalid request", http.StatusBadRequest).Response()
 	}
 
 	var updateData userUpdateData
-	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
-		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
-		return
+	if err := httputil.BodyJSON(r, &updateData); err != nil {
+		return httputil.ErrInvalidBody.Response()
 	}
 	defer r.Body.Close()
 
 	user, err := models.UserGetByID(r.Context(), s.db.Pool(), id)
 	if err != nil {
-		httputil.Error(err, "failed to get user", http.StatusInternalServerError).WriteJSON(w)
-		return
+		return httputil.NewStatusError(err, "failed to get user", http.StatusInternalServerError).Response()
 	}
 	if updateData.Name != nil {
 		user.Name = *updateData.Name
@@ -113,13 +99,8 @@ func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		user.Birthdate = *updateData.Birthdate
 	}
 	if err := models.UserUpdate(r.Context(), s.db.Pool(), user); err != nil {
-		httputil.Error(err, "failed to update user", http.StatusInternalServerError).WriteJSON(w)
-		return
+		return httputil.NewStatusError(err, "failed to update user", http.StatusInternalServerError).Response()
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]string{"message": "ok"}); err != nil {
-		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
-	}
+	return httputil.NewResponseOK(http.StatusOK, nil)
 }

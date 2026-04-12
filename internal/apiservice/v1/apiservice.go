@@ -2,8 +2,8 @@
 package apiservice
 
 import (
+	"context"
 	"log/slog"
-	"net/http"
 
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database"
@@ -17,7 +17,10 @@ type Service struct {
 	logger *slog.Logger
 }
 
-func New() kernel.Service {
+// must implement kernel.Service
+var _ kernel.Service = (*Service)(nil)
+
+func New() *Service {
 	return &Service{}
 }
 
@@ -25,22 +28,31 @@ func (s *Service) Name() string {
 	return "api/v1"
 }
 
-func (s *Service) Register(k *kernel.Kernel) (http.Handler, error) {
-	s.db = k.Database()
-	s.auth = k.Auth()
-	s.logger = k.Logger().WithGroup(s.Name())
+func (s *Service) Register(ctx context.Context, env *kernel.Env) error {
+	name := s.Name()
+	s.db = env.Database()
+	s.auth = env.Auth()
+	s.logger = env.Logger().WithGroup(name)
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", httputil.NotFoundHandler(s.logger))
-	mux.HandleFunc("GET /users", s.HandleGetUsers)
-	mux.HandleFunc("GET /users/{id}", s.HandleGetUserByID)
-	mux.HandleFunc("PATCH /users/{id}", s.HandleUpdateUser)
+	r := env.Router().Group("/" + name)
+	r.Use(httputil.AuthGuardMiddleware(s.auth))
 
-	mux.HandleFunc("GET /products", s.HandleListProducts)
-	mux.HandleFunc("GET /products/{id}", s.HandleGetProductByID)
-	mux.HandleFunc("PATCH /products/{id}", s.HandleUpdateProduct)
-	mux.HandleFunc("DELETE /products/{id}", s.HandleDeleteProduct)
+	r.HandleFunc("GET /users", s.HandleGetUsers)
+	r.HandleFunc("GET /users/{id}", s.HandleGetUserByID)
+	r.HandleFunc("PATCH /users/{id}", s.HandleUpdateUser)
 
-	handler := httputil.ChainMiddlewares(httputil.AuthGuardMiddleware(s.auth))(mux)
-	return handler, nil
+	r.HandleFunc("GET /products", s.HandleListProducts)
+	r.HandleFunc("GET /products/{id}", s.HandleGetProductByID)
+	r.HandleFunc("PATCH /products/{id}", s.HandleUpdateProduct)
+	r.HandleFunc("DELETE /products/{id}", s.HandleDeleteProduct)
+
+	return nil
+}
+
+func (s *Service) Start(ctx context.Context) error {
+	return nil
+}
+
+func (s *Service) Stop(ctx context.Context) error {
+	return nil
 }

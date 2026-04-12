@@ -6,15 +6,13 @@ info:
 http:
   method: POST
   url: "{{BASE_URL}}/auth/logout"
-  headers:
-    - name: Authorization
-      value: "{{TOKEN_TYPE}} {{ACCESS_TOKEN}}"
   body:
     type: json
     data: |-
       {
         "refresh_token": "{{REFRESH_TOKEN}}"
       }
+  auth: inherit
 
 runtime:
   variables:
@@ -23,9 +21,11 @@ runtime:
   scripts:
     - type: after-response
       code: |-
-        bru.deleteVar("TOKEN_TYPE");
-        bru.deleteVar("ACCESS_TOKEN");
-        bru.deleteVar("REFRESH_TOKEN");
+        if (res.body.ok) {
+          bru.deleteVar("TOKEN_TYPE");
+          bru.deleteVar("ACCESS_TOKEN");
+          bru.deleteVar("REFRESH_TOKEN");
+        }
 
 settings:
   encodeUrl: true

@@ -1,7 +1,6 @@
 package apiservice
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
@@ -14,7 +13,7 @@ import (
 	"github.com/phoenix-industries/phoenix-server/pkg/httputil"
 )
 
-func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	limit := 10
 	offset := 0
 
@@ -30,13 +29,7 @@ func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if limit > 20 {
-		httputil.Error(nil, "limit cannot be greater than 20", http.StatusBadRequest).WriteJSON(w)
-		return
-	}
-
-	if limit > 20 {
-		httputil.Error(nil, "limit cannot be greater than 20", http.StatusBadRequest).WriteJSON(w)
-		return
+		return httputil.NewStatusError(nil, "limit cannot be greater than 20", http.StatusBadRequest).Response()
 	}
 
 	price := r.URL.Query().Get("price")
@@ -62,48 +55,36 @@ func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) {
 
 	role, err := httputil.GetUserRole(s.auth, r)
 	if err != nil {
-		httputil.Error(err, "failed to get user role", http.StatusInternalServerError).WriteJSON(w)
-		return
+		return httputil.NewStatusError(err, "failed to get user role", http.StatusInternalServerError).Response()
 	}
 	requireApproval := !role.Allowed(auth.RoleManager)
 
 	products, err := models.ProductList(r.Context(), s.db.Pool(), requireApproval, limit, offset, &filter)
 	if err != nil {
-		println(err.Error())
-		httputil.Error(err, "failed to get products", http.StatusInternalServerError).WriteJSON(w)
-		return
+		return httputil.NewStatusError(err, "failed to get products", http.StatusInternalServerError).Response()
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(products); err != nil {
-		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
-	}
+	return httputil.NewResponseOK(http.StatusOK, products)
 }
 
-func (s *Service) HandleGetProductByID(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleGetProductByID(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	id := r.PathValue("id")
 	if id == "" {
-		httputil.Error(nil, "invalid request", http.StatusBadRequest).WriteJSON(w)
-		return
+		return httputil.ErrBadRequest.Response()
 	}
 
 	role, err := httputil.GetUserRole(s.auth, r)
 	if err != nil {
-		fmt.Println(err.Error())
-		httputil.Error(err, "failed to get user role", http.StatusInternalServerError).WriteJSON(w)
-		return
+		return httputil.ResponseFromError(err)
 	}
 	requireApproval := !role.Allowed(auth.RoleManager)
 
 	product, err := models.ProductGetByID(r.Context(), s.db.Pool(), id, requireApproval)
 	if err != nil {
-		httputil.Error(err, "failed to get product", http.StatusInternalServerError).WriteJSON(w)
-		return
+		return httputil.NewStatusError(err, "failed to get product", http.StatusInternalServerError).Response()
 	}
-	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(product); err != nil {
-		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
-	}
+
+	return httputil.NewResponseOK(http.StatusOK, product)
 }
 
 type productUpdateData struct {
@@ -119,25 +100,21 @@ type productUpdateData struct {
 	Category     *string `json:"category"`
 }
 
-func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	id := r.PathValue("id")
 	if id == "" {
-		httputil.Error(nil, "invalid request", http.StatusBadRequest).WriteJSON(w)
-		return
+		return httputil.ErrBadRequest.Response()
 	}
 
 	var updateData productUpdateData
-	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
-		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
-		return
+	if err := httputil.BodyJSON(r, &updateData); err != nil {
+		return httputil.ErrInvalidBody.Response()
 	}
 	defer r.Body.Close()
 
 	userID, err := httputil.GetUserID(s.auth, r)
 	if err != nil {
-		httputil.ErrorUnauthorized().WriteJSON(w)
-		s.logger.ErrorContext(r.Context(), "error occured in update product handler", "error", err, "userID", userID)
-		return
+		return httputil.ResponseFromError(err)
 	}
 
 	ctx := r.Context()
@@ -147,7 +124,7 @@ func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
 		if user == nil {
-			return httputil.Error(nil, "invalid credentials", http.StatusUnauthorized)
+			return httputil.ErrUnauthorized
 		}
 
 		product, err := models.ProductGetByID(ctx, tx, id, false)
@@ -155,10 +132,10 @@ func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("failed to get product: %w", err)
 		}
 		if product == nil {
-			return httputil.Error(nil, "invalid product", http.StatusBadRequest)
+			return httputil.ErrNotFound
 		}
 		if product.UserID != user.ID {
-			return httputil.Error(nil, "invalid credentials", http.StatusUnauthorized)
+			return httputil.ErrUnauthorized
 		}
 
 		if updateData.Name != nil {
@@ -190,41 +167,27 @@ func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := models.ProductUpdate(ctx, tx, product); err != nil {
-			return httputil.Error(err, "failed to update product", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to update product", http.StatusInternalServerError)
 		}
 
 		return nil
 	})
 	if err != nil {
-		if httpErr := httputil.CastError(err); httpErr != nil {
-			s.logger.ErrorContext(ctx, "error occured in update product handler", "error", httpErr.Wrap())
-			httpErr.WriteJSON(w)
-			return
-		}
-		s.logger.ErrorContext(ctx, "error occured in update product handler", "error", err)
-		http.Error(w, "something went wrong", http.StatusInternalServerError)
-		return
+		return httputil.ResponseFromError(err)
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]string{"message": "ok"}); err != nil {
-		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
-	}
+	return httputil.NewResponseOK(http.StatusOK, nil)
 }
 
-func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	id := r.PathValue("id")
 	if id == "" {
-		httputil.Error(nil, "invalid request", http.StatusBadRequest).WriteJSON(w)
-		return
+		return httputil.ErrBadRequest.Response()
 	}
 
 	userID, err := httputil.GetUserID(s.auth, r)
 	if err != nil {
-		httputil.ErrorUnauthorized().WriteJSON(w)
-		s.logger.ErrorContext(r.Context(), "error occured in update product handler", "error", err, "userID", userID)
-		return
+		return httputil.ResponseFromError(err)
 	}
 
 	ctx := r.Context()
@@ -234,7 +197,7 @@ func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
 		if user == nil {
-			return httputil.Error(nil, "invalid credentials", http.StatusUnauthorized)
+			return httputil.NewStatusError(nil, "invalid credentials", http.StatusUnauthorized)
 		}
 
 		product, err := models.ProductGetByID(ctx, tx, id, false)
@@ -242,10 +205,10 @@ func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("failed to get product: %w", err)
 		}
 		if product == nil {
-			return httputil.Error(nil, "invalid product", http.StatusBadRequest)
+			return httputil.NewStatusError(nil, "invalid product", http.StatusBadRequest)
 		}
 		if product.UserID != user.ID {
-			return httputil.Error(nil, "invalid credentials", http.StatusUnauthorized)
+			return httputil.NewStatusError(nil, "invalid credentials", http.StatusUnauthorized)
 		}
 
 		if err := models.ProductDelete(r.Context(), s.db.Pool(), id); err != nil {
@@ -255,18 +218,8 @@ func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		if httpErr := httputil.CastError(err); httpErr != nil {
-			s.logger.ErrorContext(ctx, "error occured in update product handler", "error", httpErr.Wrap())
-			httpErr.WriteJSON(w)
-			return
-		}
-		s.logger.ErrorContext(ctx, "error occured in update product handler", "error", err)
-		http.Error(w, "something went wrong", http.StatusInternalServerError)
-		return
+		return httputil.ResponseFromError(err)
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]string{"message": "ok"}); err != nil {
-		httputil.Error(err, "failed to encode response", http.StatusInternalServerError).WriteJSON(w)
-	}
+	return httputil.NewResponseOK(http.StatusOK, nil)
 }

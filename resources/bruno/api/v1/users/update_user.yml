@@ -6,14 +6,11 @@ info:
 http:
   method: PATCH
   url: "{{BASE_URL}}/api/v1/users/cpSYV6jO3OJxSWnwSGQs0"
-  headers:
-    - name: Authorization
-      value: "{{TOKEN_TYPE}} {{ACCESS_TOKEN}}"
   body:
     type: json
     data: |-
       {
-        "address": "Teezy"
+        "address": "test"
       }
   auth: inherit
 

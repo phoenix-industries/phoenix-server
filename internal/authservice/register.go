@@ -1,7 +1,6 @@
 package authservice
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -24,17 +23,14 @@ type registerData struct {
 	Birthdate   time.Time `json:"birthdate"`
 }
 
-func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	var data registerData
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
-		return
+	if err := httputil.BodyJSON(r, &data); err != nil {
+		return httputil.ErrInvalidBody.Response()
 	}
-	defer r.Body.Close()
 
 	if err := validate.Password(data.Password); err != nil {
-		httputil.Error(nil, err.Error(), http.StatusBadRequest).WriteJSON(w)
-		return
+		return httputil.NewResponseError(http.StatusBadRequest, err)
 	}
 
 	user := models.User{
@@ -48,49 +44,48 @@ func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		Birthdate:   data.Birthdate,
 	}
 	if err := user.Validate(); err != nil {
-		httputil.Error(nil, err.Error(), http.StatusBadRequest).WriteJSON(w)
-		return
+		return httputil.NewStatusError(nil, err.Error(), http.StatusBadRequest).Response()
 	}
 
 	res := AuthResponse{}
 	ctx := r.Context()
 	err := s.db.InTx(ctx, func(tx pgx.Tx) error {
 		if exists, err := models.UserExistsWithEmail(ctx, tx, user.Email); err != nil {
-			return httputil.Error(err, "failed to get user by email", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to get user by email", http.StatusInternalServerError)
 		} else if exists {
-			return httputil.Error(nil, "user with this email already exists", http.StatusConflict)
+			return httputil.NewStatusError(nil, "user with this email already exists", http.StatusConflict)
 		}
 
 		if exists, err := models.UserExistsWithPhone(ctx, tx, user.Phone); err != nil {
-			return httputil.Error(err, "failed to get user by phone", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to get user by phone", http.StatusInternalServerError)
 		} else if exists {
-			return httputil.Error(nil, "user with this phone number already exists", http.StatusConflict)
+			return httputil.NewStatusError(nil, "user with this phone number already exists", http.StatusConflict)
 		}
 
 		userID, err := s.auth.GenerateID()
 		if err != nil {
-			return httputil.Error(err, "failed to generate id", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
 		}
 		user.ID = userID
 
 		hash, err := s.auth.HashPassword(data.Password)
 		if err != nil {
-			return httputil.Error(err, "failed to hash password", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to hash password", http.StatusInternalServerError)
 		}
 		user.Password = hash
 
 		if err := models.UserInsert(ctx, tx, &user); err != nil {
-			return httputil.Error(err, "failed to create user", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to create user", http.StatusInternalServerError)
 		}
 
 		sessionID, err := s.auth.GenerateID()
 		if err != nil {
-			return httputil.Error(err, "failed to generate id", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
 		}
 
 		refreshToken, err := s.auth.GenerateToken()
 		if err != nil {
-			return httputil.Error(err, "failed to generate token", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to generate token", http.StatusInternalServerError)
 		}
 
 		session := models.UserSession{
@@ -101,13 +96,13 @@ func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) {
 			UserAgent: httputil.UserAgent(r),
 		}
 		if err := models.UserSessionInsert(ctx, tx, &session); err != nil {
-			return httputil.Error(err, "failed to create session", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to create session", http.StatusInternalServerError)
 		}
 
 		client := httputil.Client(r)
 		accessToken, err := s.auth.GenerateJWT(user.ID, client, user.Role)
 		if err != nil {
-			return httputil.Error(err, "failed to generate jwt", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to generate jwt", http.StatusInternalServerError)
 		}
 
 		res.TokenType = auth.TokenType
@@ -118,19 +113,9 @@ func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		if httpErr := httputil.CastError(err); httpErr != nil {
-			s.logger.ErrorContext(ctx, "error occured in register handler", "error", httpErr.Wrap())
-			httpErr.WriteJSON(w)
-			return
-		}
-		s.logger.ErrorContext(ctx, "error occured in register handler", "error", err)
-		http.Error(w, "something went wrong", http.StatusInternalServerError)
-		return
+		return httputil.ResponseFromError(err)
 	}
 
 	w.Header().Add("Authorization", auth.TokenPrefix+res.AccessToken)
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(&res); err != nil {
-		httputil.Error(err, "failed to return response", http.StatusInternalServerError).WriteJSON(w)
-	}
+	return httputil.NewResponseOK(http.StatusCreated, &res)
 }

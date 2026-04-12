@@ -19,9 +19,11 @@ runtime:
   scripts:
     - type: after-response
       code: |-
-        bru.setVar("TOKEN_TYPE", res.body.token_type);
-        bru.setVar("ACCESS_TOKEN", res.body.access_token);
-        bru.setVar("REFRESH_TOKEN", res.body.refresh_token);
+        if (res.body.ok) {
+          bru.setVar("TOKEN_TYPE", res.body.data.token_type);
+          bru.setVar("ACCESS_TOKEN", res.body.data.access_token);
+          bru.setVar("REFRESH_TOKEN", res.body.data.refresh_token);
+        }
 
 settings:
   encodeUrl: true

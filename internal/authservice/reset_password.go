@@ -1,7 +1,6 @@
 package authservice
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -17,32 +16,22 @@ type resetPasswordData struct {
 	NewPassword string `json:"new_password"`
 }
 
-func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	var data resetPasswordData
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
-		return
+	if err := httputil.BodyJSON(r, &data); err != nil {
+		return httputil.ErrInvalidBody.Response()
 	}
-	defer r.Body.Close()
-	if data.Password == "" {
-		httputil.ErrorBadRequest().WriteJSON(w)
-		return
-	}
-	if data.NewPassword == "" {
-		httputil.ErrorBadRequest().WriteJSON(w)
-		return
+	if data.Password == "" || data.NewPassword == "" {
+		return httputil.ErrBadRequest.Response()
 	}
 
 	if err := validate.Password(data.NewPassword); err != nil {
-		httputil.Error(nil, err.Error(), http.StatusBadRequest).WriteJSON(w)
-		return
+		httputil.NewStatusError(nil, err.Error(), http.StatusBadRequest).Response()
 	}
 
 	userID, err := httputil.GetUserID(s.auth, r)
 	if err != nil {
-		httputil.ErrorUnauthorized().WriteJSON(w)
-		s.logger.ErrorContext(r.Context(), "error occured in reset password handler", "error", err, "userID", userID)
-		return
+		return httputil.ResponseFromError(err)
 	}
 
 	ctx := r.Context()
@@ -53,33 +42,33 @@ func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
 		if user == nil {
-			return httputil.Error(nil, "invalid credentials", http.StatusUnauthorized)
+			return httputil.ErrUnauthorized
 		}
 
 		if valid, err := s.auth.VerifyPassword(data.Password, user.Password); err != nil {
-			return httputil.Error(err, "request failed", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "request failed", http.StatusInternalServerError)
 		} else if !valid {
-			return httputil.Error(nil, "invalid credentials", http.StatusUnauthorized)
+			return httputil.ErrUnauthorized
 		}
 
 		hash, err := s.auth.HashPassword(data.NewPassword)
 		if err != nil {
-			return httputil.Error(err, "failed to hash password", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to hash password", http.StatusInternalServerError)
 		}
 		user.Password = hash
 
 		if err := models.UserUpdate(ctx, tx, user); err != nil {
-			return httputil.Error(err, "failed to update user", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to update user", http.StatusInternalServerError)
 		}
 
 		sessionID, err := s.auth.GenerateID()
 		if err != nil {
-			return httputil.Error(err, "failed to generate id", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
 		}
 
 		refreshToken, err := s.auth.GenerateToken()
 		if err != nil {
-			return httputil.Error(err, "failed to generate token", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to generate token", http.StatusInternalServerError)
 		}
 
 		session := models.UserSession{
@@ -90,13 +79,13 @@ func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
 			UserAgent: httputil.UserAgent(r),
 		}
 		if err := models.UserSessionInsert(ctx, tx, &session); err != nil {
-			return httputil.Error(err, "failed to create session", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to create session", http.StatusInternalServerError)
 		}
 
 		client := httputil.Client(r)
 		accessToken, err := s.auth.GenerateJWT(user.ID, client, user.Role)
 		if err != nil {
-			return httputil.Error(err, "failed to generate jwt", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to generate jwt", http.StatusInternalServerError)
 		}
 
 		res.TokenType = auth.TokenType
@@ -107,19 +96,9 @@ func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		if httpErr := httputil.CastError(err); httpErr != nil {
-			s.logger.ErrorContext(ctx, "error occured in reset password handler", "error", httpErr.Wrap())
-			httpErr.WriteJSON(w)
-			return
-		}
-		s.logger.ErrorContext(ctx, "error occured in reset password handler", "error", err)
-		http.Error(w, "something went wrong", http.StatusInternalServerError)
-		return
+		return httputil.ResponseFromError(err)
 	}
 
 	w.Header().Add("Authorization", auth.TokenPrefix+res.AccessToken)
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(&res); err != nil {
-		httputil.Error(err, "failed to return response", http.StatusInternalServerError).WriteJSON(w)
-	}
+	return httputil.NewResponseOK(http.StatusCreated, res)
 }

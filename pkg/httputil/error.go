@@ -1,68 +1,66 @@
 package httputil
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 )
 
 var (
-	ErrInvalidRequest = errors.New("invalid request")
-	ErrUnauthorized   = errors.New("unauthorized")
+	ErrBadRequest     = NewStatusError(nil, "bad request", http.StatusBadRequest)
+	ErrUnauthorized   = NewStatusError(nil, "unauthorized", http.StatusUnauthorized)
+	ErrInvalidBody    = NewStatusError(nil, "invalid request body", http.StatusBadRequest)
+	ErrInternalServer = NewStatusError(nil, "internal server error", http.StatusInternalServerError)
+	ErrNotFound       = NewStatusError(nil, "not found", http.StatusNotFound)
 )
 
-type HTTPError struct {
+type StatusError struct {
 	msg  string
 	err  error
 	code int
 }
 
-func Error(err error, msg string, code int) *HTTPError {
-	return &HTTPError{
+func NewStatusError(err error, msg string, code int) *StatusError {
+	return &StatusError{
 		err:  err,
 		msg:  msg,
 		code: code,
 	}
 }
 
-func CastError(err error) *HTTPError {
-	if e, ok := err.(*HTTPError); ok {
-		return e
-	}
-	return nil
+func StatusErrorFromCode(code int) *StatusError {
+	return NewStatusError(nil, http.StatusText(code), code)
 }
 
-func (e *HTTPError) Error() string {
+func (e *StatusError) StatusCode() int {
+	return e.code
+}
+
+func (e *StatusError) Error() string {
+	if e.msg == "" {
+		return http.StatusText(e.code)
+	}
 	return e.msg
 }
 
-func (e *HTTPError) Unwrap() error {
+func (e *StatusError) Unwrap() error {
 	return e.err
 }
 
-func (e *HTTPError) Wrap() error {
+func (e *StatusError) Wrap() error {
 	if e.err == nil {
 		return errors.New(e.msg)
 	}
 	return fmt.Errorf("%s: %w", e.msg, e.err)
 }
 
-func (e *HTTPError) Write(w http.ResponseWriter) {
-	w.WriteHeader(e.code)
-	w.Write([]byte(e.msg))
+func (e *StatusError) String() string {
+	if e.err == nil {
+		return fmt.Sprintf("[%d] %s", e.code, e.msg)
+	}
+	return fmt.Sprintf("[%d] %s: %s", e.code, e.msg, e.err.Error())
 }
 
-func (e *HTTPError) WriteJSON(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(e.code)
-	return json.NewEncoder(w).Encode(map[string]string{"error": e.msg})
-}
-
-func ErrorBadRequest() *HTTPError {
-	return Error(nil, ErrInvalidRequest.Error(), http.StatusBadRequest)
-}
-
-func ErrorUnauthorized() *HTTPError {
-	return Error(nil, ErrUnauthorized.Error(), http.StatusUnauthorized)
+func (e *StatusError) Response() *Response {
+	return NewResponse(e.code, nil, e)
 }

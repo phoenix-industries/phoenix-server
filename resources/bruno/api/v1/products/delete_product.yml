@@ -5,10 +5,7 @@ info:
 
 http:
   method: DELETE
-  url: "{{BASE_URL}}/api/v1/products/12123"
-  headers:
-    - name: Authorization
-      value: "{{TOKEN_TYPE}} {{ACCESS_TOKEN}}"
+  url: "{{BASE_URL}}/api/v1/products/112132221523"
   auth: inherit
 
 settings:

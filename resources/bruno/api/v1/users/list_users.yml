@@ -6,9 +6,6 @@ info:
 http:
   method: GET
   url: "{{BASE_URL}}/api/v1/users?offset=0&limit=10"
-  headers:
-    - name: Authorization
-      value: "{{TOKEN_TYPE}} {{ACCESS_TOKEN}}"
   params:
     - name: offset
       value: "0"

@@ -1,7 +1,6 @@
 package authservice
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -16,15 +15,13 @@ type refreshData struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func (s *Service) HandleRefresh(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleRefresh(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	var data refreshData
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
-		return
+	if err := httputil.BodyJSON(r, &data); err != nil {
+		return httputil.ErrInvalidBody.Response()
 	}
 	if data.RefreshToken == "" {
-		httputil.ErrorBadRequest().WriteJSON(w)
-		return
+		return httputil.ErrBadRequest.Response()
 	}
 
 	res := AuthResponse{}
@@ -35,7 +32,7 @@ func (s *Service) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("failed to get session: %w", err)
 		}
 		if time.Now().After(session.ExpiresAt.Add(auth.DefaultJWTDuration)) {
-			return httputil.ErrorUnauthorized()
+			return httputil.ErrUnauthorized
 		}
 		user, err := models.UserGetByID(ctx, tx, session.UserID)
 		if err != nil {
@@ -45,7 +42,7 @@ func (s *Service) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 		client := httputil.Client(r)
 		accessToken, err := s.auth.GenerateJWT(user.ID, client, user.Role)
 		if err != nil {
-			return httputil.Error(err, "failed to generate jwt", http.StatusInternalServerError)
+			return httputil.NewStatusError(err, "failed to generate jwt", http.StatusInternalServerError)
 		}
 
 		res.TokenType = auth.TokenType
@@ -56,19 +53,9 @@ func (s *Service) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		if httpErr := httputil.CastError(err); httpErr != nil {
-			s.logger.ErrorContext(ctx, "error occured in refresh handler", "error", httpErr.Wrap())
-			httpErr.WriteJSON(w)
-			return
-		}
-		s.logger.ErrorContext(ctx, "error occured in refresh handler", "error", err)
-		http.Error(w, "something went wrong", http.StatusInternalServerError)
-		return
+		return httputil.ResponseFromError(err)
 	}
 
 	w.Header().Add("Authorization", auth.TokenPrefix+res.AccessToken)
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(&res); err != nil {
-		httputil.Error(err, "failed to return response", http.StatusInternalServerError).WriteJSON(w)
-	}
+	return httputil.NewResponseOK(http.StatusCreated, res)
 }

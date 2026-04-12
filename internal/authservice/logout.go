@@ -1,7 +1,6 @@
 package authservice
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -14,33 +13,21 @@ type logoutData struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	token, err := httputil.GetAccessToken(r)
-	if err != nil {
-		httputil.ErrorBadRequest().WriteJSON(w)
-		s.logger.ErrorContext(r.Context(), "error occured in logout handler while geting the access token", "error", err, "token", token)
-		return
-	}
+func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	userID, err := httputil.GetUserID(s.auth, r)
 	if err != nil {
-		httputil.ErrorBadRequest().WriteJSON(w)
-		s.logger.ErrorContext(r.Context(), "error occured in logout handler while geting the subject claim from jwt token", "error", err, "token", token)
-		return
+		return httputil.ResponseFromError(err)
 	}
 	if userID == "" {
-		httputil.ErrorUnauthorized().WriteJSON(w)
-		s.logger.ErrorContext(r.Context(), "invalid token spotted in logout handler", "userID", userID)
-		return
+		return httputil.ErrUnauthorized.Response()
 	}
 
 	var data logoutData
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		httputil.Error(nil, "invalid request body", http.StatusBadRequest).WriteJSON(w)
-		return
+	if err := httputil.BodyJSON(r, &data); err != nil {
+		return httputil.NewStatusError(nil, "invalid request body", http.StatusBadRequest).Response()
 	}
 	if data.RefreshToken == "" {
-		httputil.ErrorBadRequest().WriteJSON(w)
-		return
+		return httputil.ErrUnauthorized.Response()
 	}
 
 	ctx := r.Context()
@@ -50,7 +37,7 @@ func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("failed to get session: %w", err)
 		}
 		if session.UserID != userID {
-			return httputil.ErrorUnauthorized()
+			return httputil.ErrUnauthorized
 		}
 		if err := models.UserSessionDeleteByID(ctx, tx, session.ID); err != nil {
 			return fmt.Errorf("failed to delete session: %w", err)
@@ -58,18 +45,8 @@ func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		if httpErr := httputil.CastError(err); httpErr != nil {
-			s.logger.ErrorContext(ctx, "error occured in logout handler", "error", httpErr.Wrap())
-			httpErr.WriteJSON(w)
-			return
-		}
-		s.logger.ErrorContext(ctx, "error occured in logout handler", "error", err)
-		http.Error(w, "something went wrong", http.StatusInternalServerError)
-		return
+		return httputil.ResponseFromError(err)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]string{"message": "ok"}); err != nil {
-		httputil.Error(err, "failed to return response", http.StatusInternalServerError).WriteJSON(w)
-	}
+	return httputil.NewResponseOK(http.StatusOK, nil)
 }

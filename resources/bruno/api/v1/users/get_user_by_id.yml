@@ -6,9 +6,6 @@ info:
 http:
   method: GET
   url: "{{BASE_URL}}/api/v1/users/cpSYV6jO3OJxSWnwSGQs0"
-  headers:
-    - name: Authorization
-      value: "{{TOKEN_TYPE}} {{ACCESS_TOKEN}}"
   auth: inherit
 
 settings:

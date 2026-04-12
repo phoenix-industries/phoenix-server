@@ -2,14 +2,15 @@
 package authservice
 
 import (
+	"context"
 	"log/slog"
-	"net/http"
 
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database"
-	"github.com/phoenix-industries/phoenix-server/pkg/httputil"
 	"github.com/phoenix-industries/phoenix-server/pkg/kernel"
 )
+
+var _ kernel.Service = (*Service)(nil)
 
 type Service struct {
 	db     *database.Database
@@ -17,7 +18,7 @@ type Service struct {
 	logger *slog.Logger
 }
 
-func New() kernel.Service {
+func New() *Service {
 	return &Service{}
 }
 
@@ -25,19 +26,28 @@ func (s *Service) Name() string {
 	return "auth"
 }
 
-func (s *Service) Register(k *kernel.Kernel) (http.Handler, error) {
-	s.db = k.Database()
-	s.auth = k.Auth()
-	s.logger = k.Logger().WithGroup(s.Name())
+func (s *Service) Register(ctx context.Context, env *kernel.Env) error {
+	name := s.Name()
+	s.db = env.Database()
+	s.auth = env.Auth()
+	s.logger = env.Logger().WithGroup(name)
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", httputil.NotFoundHandler(s.logger))
-	mux.HandleFunc("POST /register", s.HandleRegister)
-	mux.HandleFunc("POST /login", s.HandleLogin)
-	mux.HandleFunc("POST /logout", s.HandleLogout)
-	mux.HandleFunc("POST /refresh", s.HandleRefresh)
+	r := env.Router().Group("/" + name)
 
-	return mux, nil
+	r.HandleFunc("POST /register", s.HandleRegister)
+	r.HandleFunc("POST /login", s.HandleLogin)
+	r.HandleFunc("POST /logout", s.HandleLogout)
+	r.HandleFunc("POST /refresh", s.HandleRefresh)
+
+	return nil
+}
+
+func (s *Service) Start(ctx context.Context) error {
+	return nil
+}
+
+func (s *Service) Stop(ctx context.Context) error {
+	return nil
 }
 
 type AuthResponse struct {

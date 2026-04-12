@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/phoenix-industries/phoenix-server/internal/buildinfo"
@@ -16,10 +17,10 @@ type RequestID string
 
 const RequestIDKey RequestID = "request_id"
 
-func ChainMiddlewares(middlewares ...func(http.Handler) http.Handler) func(http.Handler) http.Handler {
+func ChainMiddlewares(middlewares ...Middleware) Middleware {
 	return func(next http.Handler) http.Handler {
-		for _, m := range middlewares {
-			next = m(next)
+		for i := len(middlewares) - 1; i >= 0; i-- {
+			next = middlewares[i](next)
 		}
 		return next
 	}
@@ -54,8 +55,15 @@ func RecoveryMiddleware(logger *slog.Logger) Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					requestID := r.Context().Value(RequestIDKey)
-					logger.Error("request panic", "request_id", requestID, "error", err)
+					ctx := r.Context()
+					requestID := ctx.Value(RequestIDKey)
+					logger.ErrorContext(
+						ctx,
+						"request panic",
+						"request_id", requestID,
+						"error", err,
+						"stacktrace", debug.Stack(),
+					)
 					http.Error(w, "internal server error", http.StatusInternalServerError)
 				}
 			}()

@@ -160,7 +160,6 @@ func UserUpdate(ctx context.Context, db database.DB, user *User) error {
 		WHERE id = $1
 	`
 	if _, err := db.Exec(ctx, stmt, user.ID, user.Name, user.Email, user.Phone, user.City, user.Governorate, user.Address, user.Birthdate); err != nil {
-		println(err.Error())
 		return err
 	}
 	return nil
