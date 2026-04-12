@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -17,7 +18,7 @@ type Router struct {
 
 func NewRouter(logger *slog.Logger) *Router {
 	if logger == nil {
-		logger = slog.Default().WithGroup("HTTP")
+		logger = slog.Default().WithGroup("http")
 	}
 
 	mux := http.NewServeMux()
@@ -75,6 +76,26 @@ func (r *Router) wrapHandler(h HandlerFunc) http.Handler {
 		if res == nil {
 			// no news is good news
 			res = NewResponseOK(http.StatusOK, nil)
+		}
+		if !res.OK && res.StatusCode >= http.StatusInternalServerError {
+			oerr := "<none>"
+			if err := res.EmbededError(); err != nil {
+				var statusErr *StatusError
+				if errors.As(err, &statusErr) {
+					oerr = statusErr.String()
+				} else {
+					oerr = err.Error()
+				}
+			}
+			r.logger.ErrorContext(
+				req.Context(),
+				"failed to handle request",
+				"path", req.URL.Path,
+				"method", req.Method,
+				"status_code", res.StatusCode,
+				"error", res.Error,
+				"original_error", oerr,
+			)
 		}
 		if err := res.WriteJSON(w); err != nil {
 			r.logger.ErrorContext(
