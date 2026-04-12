@@ -12,6 +12,13 @@ import (
 
 var _ kernel.Service = (*Service)(nil)
 
+type AuthResponse struct {
+	TokenType    string `json:"token_type"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresAt    int64  `json:"expires_at"`
+}
+
 type Service struct {
 	db     *database.Database
 	auth   *auth.Auth
@@ -48,11 +55,4 @@ func (s *Service) Start(ctx context.Context) error {
 
 func (s *Service) Stop(ctx context.Context) error {
 	return nil
-}
-
-type AuthResponse struct {
-	TokenType    string `json:"token_type"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresAt    int64  `json:"expires_at"`
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/jackc/pgx/v5"
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database"
 )
@@ -59,6 +60,9 @@ func UserSessionGetByID(ctx context.Context, db database.DB, id string) (*UserSe
 	stmt := `SELECT * FROM user_sessions WHERE id = $1 and deleted_at is null`
 	var userSession UserSession
 	if err := pgxscan.Get(ctx, db, &userSession, stmt, id); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &userSession, nil
@@ -68,6 +72,9 @@ func UserSessionGetByToken(ctx context.Context, db database.DB, token string) (*
 	stmt := `SELECT * FROM user_sessions WHERE token = $1 and deleted_at is null`
 	var userSession UserSession
 	if err := pgxscan.Get(ctx, db, &userSession, stmt, token); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &userSession, nil
@@ -77,6 +84,9 @@ func UserSessionGetByUserID(ctx context.Context, db database.DB, userID string) 
 	stmt := `SELECT * FROM user_sessions WHERE user_id = $1 and deleted_at is null`
 	var userSession UserSession
 	if err := pgxscan.Get(ctx, db, &userSession, stmt, userID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &userSession, nil

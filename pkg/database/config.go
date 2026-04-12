@@ -76,6 +76,9 @@ func (c *Config) ConnectionString() string {
 	vals := c.dbValues()
 	p := make([]string, 0, len(vals))
 	for k, v := range vals {
+		if k == "password" {
+			p = append(p, fmt.Sprintf("%s=%s", k, strings.Repeat("*", len(v))))
+		}
 		p = append(p, fmt.Sprintf("%s=%s", k, v))
 	}
 	return strings.Join(p, " ")

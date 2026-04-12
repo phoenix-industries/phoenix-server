@@ -17,10 +17,10 @@ type Env struct {
 
 func NewEnv(router *httputil.Router, db *database.Database, auth *auth.Auth, logger *slog.Logger) *Env {
 	if logger == nil {
-		logger = slog.Default().WithGroup("Kernel")
+		logger = slog.Default().WithGroup("kernel")
 	}
 	if router == nil {
-		router = httputil.NewRouter(logger.WithGroup("HTTP router"))
+		router = httputil.NewRouter(logger.WithGroup("http.router"))
 	}
 	return &Env{
 		db:     db,

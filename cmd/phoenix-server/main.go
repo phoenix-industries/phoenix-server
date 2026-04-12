@@ -125,11 +125,11 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	router := httputil.NewRouter(logger.WithGroup("HTTP router"))
+	router := httputil.NewRouter(logger.WithGroup("http.router"))
 	router.Use(httputil.RecoveryMiddleware(logger))
 	router.Use(httputil.LoggingMiddleware(logger))
 
-	env := kernel.NewEnv(router, db, auth, logger.WithGroup("Kernel"))
+	env := kernel.NewEnv(router, db, auth, logger.WithGroup("kernel"))
 	kernel := kernel.NewKernel(env)
 	if err := kernel.Register(ctx, authservice.New(), apiservice.New()); err != nil {
 		return err
