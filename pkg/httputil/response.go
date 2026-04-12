@@ -16,10 +16,13 @@ type Response struct {
 
 func NewResponse(statusCode int, data any, err error) *Response {
 	if statusCode == 0 {
-		if err == nil {
-			statusCode = http.StatusOK
-		} else {
+		switch {
+		case err != nil:
 			statusCode = http.StatusInternalServerError
+		case data == nil:
+			statusCode = http.StatusNoContent
+		default:
+			statusCode = http.StatusOK
 		}
 	}
 	errmsg := ""
@@ -49,7 +52,7 @@ func NewResponseError(statusCode int, err error) *Response {
 
 func ResponseFromError(err error) *Response {
 	if err == nil {
-		return NewResponse(http.StatusOK, nil, nil)
+		return NewResponse(http.StatusNoContent, nil, nil)
 	}
 	var statusErr *StatusError
 	if errors.As(err, &statusErr) {

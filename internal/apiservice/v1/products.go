@@ -176,7 +176,7 @@ func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) *h
 		return httputil.ResponseFromError(err)
 	}
 
-	return httputil.NewResponseOK(http.StatusOK, nil)
+	return httputil.NewResponseOK(http.StatusNoContent, nil)
 }
 
 func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) *httputil.Response {
@@ -221,5 +221,5 @@ func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) *h
 		return httputil.ResponseFromError(err)
 	}
 
-	return httputil.NewResponseOK(http.StatusOK, nil)
+	return httputil.NewResponseOK(http.StatusNoContent, nil)
 }

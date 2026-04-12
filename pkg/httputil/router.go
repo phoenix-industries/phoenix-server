@@ -75,7 +75,7 @@ func (r *Router) wrapHandler(h HandlerFunc) http.Handler {
 		res := h(w, req)
 		if res == nil {
 			// no news is good news
-			res = NewResponseOK(http.StatusOK, nil)
+			res = NewResponseOK(http.StatusNoContent, nil)
 		}
 		if !res.OK && res.StatusCode >= http.StatusInternalServerError {
 			oerr := "<none>"

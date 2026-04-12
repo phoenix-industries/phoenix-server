@@ -102,5 +102,5 @@ func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) *http
 		return httputil.NewStatusError(err, "failed to update user", http.StatusInternalServerError).Response()
 	}
 
-	return httputil.NewResponseOK(http.StatusOK, nil)
+	return httputil.NewResponseOK(http.StatusNoContent, nil)
 }
