@@ -66,22 +66,26 @@ func UserInsert(ctx context.Context, db database.DB, user *User) error {
 	if user.Password == "" {
 		return errors.New("password is not set")
 	}
-	stmt := `
+	query := `
 		INSERT INTO users
 		(id, name, email, phone, role, city, governorate, address, password, birthdate)
 		VALUES
 		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
-	if _, err := db.Exec(ctx, stmt, user.ID, user.Name, user.Email, user.Phone, user.Role, user.City, user.Governorate, user.Address, user.Password, user.Birthdate); err != nil {
+	if _, err := db.Exec(ctx, query, user.ID, user.Name, user.Email, user.Phone, user.Role, user.City, user.Governorate, user.Address, user.Password, user.Birthdate); err != nil {
 		return err
 	}
 	return nil
 }
 
 func UserGetByID(ctx context.Context, db database.DB, id string) (*User, error) {
-	stmt := `SELECT * FROM users WHERE id = $1 and deleted_at is null`
+	query := `
+		SELECT *
+		FROM users
+		WHERE id = $1 AND deleted_at IS null
+	`
 	var user User
-	if err := pgxscan.Get(ctx, db, &user, stmt, id); err != nil {
+	if err := pgxscan.Get(ctx, db, &user, query, id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
@@ -91,9 +95,16 @@ func UserGetByID(ctx context.Context, db database.DB, id string) (*User, error) 
 }
 
 func UserGetAll(ctx context.Context, db database.DB, limit int, offset int) ([]User, error) {
-	stmt := `SELECT * FROM users WHERE deleted_at is null ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	query := `
+		SELECT *
+		FROM users
+		WHERE deleted_at IS null
+		ORDER BY created_at DESC
+		LIMIT $1
+		OFFSET $2
+	`
 	var users []User
-	if err := pgxscan.Select(ctx, db, &users, stmt, limit, offset); err != nil {
+	if err := pgxscan.Select(ctx, db, &users, query, limit, offset); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
@@ -103,9 +114,13 @@ func UserGetAll(ctx context.Context, db database.DB, limit int, offset int) ([]U
 }
 
 func UserGetByEmail(ctx context.Context, db database.DB, email string) (*User, error) {
-	stmt := `SELECT * FROM users WHERE email = $1 and deleted_at is null`
+	query := `
+		SELECT *
+		FROM users
+		WHERE email = $1 AND deleted_at IS null
+	`
 	var user User
-	if err := pgxscan.Get(ctx, db, &user, stmt, email); err != nil {
+	if err := pgxscan.Get(ctx, db, &user, query, email); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
@@ -115,9 +130,13 @@ func UserGetByEmail(ctx context.Context, db database.DB, email string) (*User, e
 }
 
 func UserGetByPhone(ctx context.Context, db database.DB, phone string) (*User, error) {
-	stmt := `SELECT * FROM users WHERE phone = $1 and deleted_at is null`
+	query := `
+		SELECT *
+		FROM users
+		WHERE phone = $1 AND deleted_at IS null
+	`
 	var user User
-	if err := pgxscan.Get(ctx, db, &user, stmt, phone); err != nil {
+	if err := pgxscan.Get(ctx, db, &user, query, phone); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
@@ -127,39 +146,58 @@ func UserGetByPhone(ctx context.Context, db database.DB, phone string) (*User, e
 }
 
 func UserExistsWithID(ctx context.Context, db database.DB, id string) (bool, error) {
-	stmt := `SELECT EXISTS(SELECT 1 FROM users WHERE id = $1 AND deleted_at IS null)`
+	query := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM users
+			WHERE id = $1 AND deleted_at IS null
+		)
+	`
 	var exists bool
-	if err := pgxscan.Get(ctx, db, &exists, stmt, id); err != nil {
+	if err := pgxscan.Get(ctx, db, &exists, query, id); err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
 func UserExistsWithEmail(ctx context.Context, db database.DB, email string) (bool, error) {
-	stmt := `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1 AND deleted_at IS null)`
+	query := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM users
+			WHERE email = $1 AND deleted_at IS null
+		)
+	`
 	var exists bool
-	if err := pgxscan.Get(ctx, db, &exists, stmt, email); err != nil {
+	if err := pgxscan.Get(ctx, db, &exists, query, email); err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
 func UserExistsWithPhone(ctx context.Context, db database.DB, phone string) (bool, error) {
-	stmt := `SELECT EXISTS(SELECT 1 FROM users WHERE phone = $1 AND deleted_at IS null)`
+	query := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM users
+			WHERE phone = $1 AND deleted_at IS null
+		)
+	`
 	var exists bool
-	if err := pgxscan.Get(ctx, db, &exists, stmt, phone); err != nil {
+	if err := pgxscan.Get(ctx, db, &exists, query, phone); err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
 func UserUpdate(ctx context.Context, db database.DB, user *User) error {
-	stmt := `
+	query := `
 		UPDATE users
-		SET name = $2, email = $3, phone = $4, city = $5, governorate = $6, address = $7, birthdate = $8, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $1
+		SET name = $2, email = $3, phone = $4, city = $5, governorate = $6,
+			address = $7, birthdate = $8, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND deleted_at IS null
 	`
-	if _, err := db.Exec(ctx, stmt, user.ID, user.Name, user.Email, user.Phone, user.City, user.Governorate, user.Address, user.Birthdate); err != nil {
+	if _, err := db.Exec(ctx, query, user.ID, user.Name, user.Email, user.Phone, user.City, user.Governorate, user.Address, user.Birthdate); err != nil {
 		return err
 	}
 	return nil

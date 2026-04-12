@@ -37,7 +37,8 @@ func ConnectWithLogger(ctx context.Context, config *Config, logger *slog.Logger)
 	}
 
 	pgxConfig.PrepareConn = func(ctx context.Context, conn *pgx.Conn) (bool, error) {
-		return conn.Ping(ctx) == nil, nil
+		err := conn.Ping(ctx)
+		return err == nil, err
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, pgxConfig)

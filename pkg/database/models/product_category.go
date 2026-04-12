@@ -24,15 +24,24 @@ func ProductCategoryInsert(ctx context.Context, db database.DB, category *Produc
 	if err := category.Validate(); err != nil {
 		return err
 	}
-	stmt := `INSERT INTO product_categories (id, name) VALUES ($1, $2)`
-	_, err := db.Exec(ctx, stmt, category.ID, category.Name)
+	query := `
+		INSERT INTO product_categories
+		(id, name)
+		VALUES
+		($1, $2)
+	`
+	_, err := db.Exec(ctx, query, category.ID, category.Name)
 	return err
 }
 
 func ProductCategoryGetByID(ctx context.Context, db database.DB, id string) (*ProductCategory, error) {
-	stmt := `SELECT * FROM product_categories WHERE id = $1 AND deleted_at IS NULL`
+	query := `
+		SELECT *
+		FROM product_categories
+		WHERE id = $1 AND deleted_at IS null
+	`
 	var category ProductCategory
-	err := pgxscan.Get(ctx, db, &category, stmt, id)
+	err := pgxscan.Get(ctx, db, &category, query, id)
 	if err != nil {
 		return nil, err
 	}
@@ -41,9 +50,14 @@ func ProductCategoryGetByID(ctx context.Context, db database.DB, id string) (*Pr
 }
 
 func ProductCategoryGetAll(ctx context.Context, db database.DB) ([]*ProductCategory, error) {
-	stmt := `SELECT * FROM product_categories WHERE deleted_at IS NULL ORDER BY created_at`
+	query := `
+		SELECT *
+		FROM product_categories
+		WHERE deleted_at IS null
+		ORDER BY created_at
+	`
 	var categories []*ProductCategory
-	err := pgxscan.Select(ctx, db, &categories, stmt)
+	err := pgxscan.Select(ctx, db, &categories, query)
 	if err != nil {
 		return nil, err
 	}
@@ -51,13 +65,20 @@ func ProductCategoryGetAll(ctx context.Context, db database.DB) ([]*ProductCateg
 }
 
 func ProductCategoryUpdate(ctx context.Context, db database.DB, category *ProductCategory) error {
-	query := `UPDATE product_categories SET name = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL`
+	query := `
+		UPDATE product_categories
+		SET name = $2, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND deleted_at IS null
+	`
 	_, err := db.Exec(ctx, query, category.ID, category.Name)
 	return err
 }
 
 func ProductCategoryDelete(ctx context.Context, db database.DB, id string) error {
-	query := `UPDATE product_categories SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL`
+	query := `
+		UPDATE product_categories
+		SET deleted_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND deleted_at IS null`
 	_, err := db.Exec(ctx, query, id)
 	return err
 }

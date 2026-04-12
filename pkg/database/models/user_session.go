@@ -44,22 +44,26 @@ func UserSessionInsert(ctx context.Context, db database.DB, userSession *UserSes
 	if userSession.ExpiresAt.IsZero() {
 		userSession.ExpiresAt = time.Now().Add(auth.DefaultSessionDuration)
 	}
-	stmt := `
+	query := `
 		INSERT INTO user_sessions
 		(id, user_id, token, ip_address, user_agent, expires_at)
 		VALUES
 		($1, $2, $3, $4, $5, $6)
 	`
-	if _, err := db.Exec(ctx, stmt, userSession.ID, userSession.UserID, userSession.Token, userSession.IPAddress, userSession.UserAgent, userSession.ExpiresAt); err != nil {
+	if _, err := db.Exec(ctx, query, userSession.ID, userSession.UserID, userSession.Token, userSession.IPAddress, userSession.UserAgent, userSession.ExpiresAt); err != nil {
 		return err
 	}
 	return nil
 }
 
 func UserSessionGetByID(ctx context.Context, db database.DB, id string) (*UserSession, error) {
-	stmt := `SELECT * FROM user_sessions WHERE id = $1 and deleted_at is null`
+	query := `
+		SELECT *
+		FROM user_sessions
+		WHERE id = $1 AND deleted_at IS null
+	`
 	var userSession UserSession
-	if err := pgxscan.Get(ctx, db, &userSession, stmt, id); err != nil {
+	if err := pgxscan.Get(ctx, db, &userSession, query, id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
@@ -69,9 +73,13 @@ func UserSessionGetByID(ctx context.Context, db database.DB, id string) (*UserSe
 }
 
 func UserSessionGetByToken(ctx context.Context, db database.DB, token string) (*UserSession, error) {
-	stmt := `SELECT * FROM user_sessions WHERE token = $1 and deleted_at is null`
+	query := `
+		SELECT *
+		FROM user_sessions
+		WHERE token = $1 AND deleted_at IS null
+	`
 	var userSession UserSession
-	if err := pgxscan.Get(ctx, db, &userSession, stmt, token); err != nil {
+	if err := pgxscan.Get(ctx, db, &userSession, query, token); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
@@ -81,9 +89,13 @@ func UserSessionGetByToken(ctx context.Context, db database.DB, token string) (*
 }
 
 func UserSessionGetByUserID(ctx context.Context, db database.DB, userID string) (*UserSession, error) {
-	stmt := `SELECT * FROM user_sessions WHERE user_id = $1 and deleted_at is null`
+	query := `
+		SELECT *
+		FROM user_sessions
+		WHERE user_id = $1 AND deleted_at IS null
+	`
 	var userSession UserSession
-	if err := pgxscan.Get(ctx, db, &userSession, stmt, userID); err != nil {
+	if err := pgxscan.Get(ctx, db, &userSession, query, userID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
@@ -93,7 +105,11 @@ func UserSessionGetByUserID(ctx context.Context, db database.DB, userID string) 
 }
 
 func UserSessionDeleteByID(ctx context.Context, db database.DB, id string) error {
-	stmt := `UPDATE user_sessions SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 and deleted_at is null`
-	_, err := db.Exec(ctx, stmt, id)
+	query := `
+		UPDATE user_sessions
+		SET deleted_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND deleted_at IS null
+	`
+	_, err := db.Exec(ctx, query, id)
 	return err
 }
