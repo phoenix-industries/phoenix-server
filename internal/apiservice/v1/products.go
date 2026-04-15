@@ -13,6 +13,48 @@ import (
 	"github.com/phoenix-industries/phoenix-server/pkg/httputil"
 )
 
+func (s *Service) HandleCreateProduct(w http.ResponseWriter, r *http.Request) *httputil.Response {
+	var data models.Product
+	if err := httputil.BodyJSON(r, &data); err != nil {
+		return httputil.ErrInvalidBody.Response()
+	}
+
+	userID, err := httputil.GetUserID(s.auth, r)
+	if err != nil {
+		return httputil.ErrUnauthorized.Response()
+	}
+
+	ctx := r.Context()
+	err = s.db.InTx(ctx, func(tx pgx.Tx) error {
+		user, err := models.UserGetByID(ctx, tx, userID)
+		if err != nil {
+			return fmt.Errorf("failed to get user: %w", err)
+		}
+		if user == nil {
+			return httputil.ErrUnauthorized
+		}
+
+		id, err := s.auth.GenerateID()
+		if err != nil {
+			return fmt.Errorf("failed to generate id: %w", err)
+		}
+		data.ID = id
+		data.UserID = user.ID
+		data.Approved = false
+
+		if err := models.ProductInsert(ctx, tx, &data); err != nil {
+			return httputil.NewStatusError(err, "failed to create product", http.StatusInternalServerError)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return httputil.ResponseFromError(err)
+	}
+
+	return httputil.NewResponseOK(http.StatusNoContent, nil)
+}
+
 func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	limit := 10
 	offset := 0
