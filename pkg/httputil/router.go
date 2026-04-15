@@ -62,6 +62,15 @@ func (r *Router) Handle(pattern string, handler http.Handler) {
 	r.mux.Handle(method+r.prefix+path, handler)
 }
 
+func (r *Router) applyMiddlewares(handler http.Handler) http.Handler {
+	return ChainMiddlewares(r.middlewares...)(handler)
+}
+
+func (r *Router) HandleFuncNative(pattern string, handler http.HandlerFunc) {
+	h := r.applyMiddlewares(handler)
+	r.Handle(pattern, h)
+}
+
 func (r *Router) HandleFunc(pattern string, handler HandlerFunc) {
 	r.Handle(pattern, r.wrapHandler(handler))
 }
@@ -111,5 +120,5 @@ func (r *Router) wrapHandler(h HandlerFunc) http.Handler {
 		}
 	})
 
-	return ChainMiddlewares(r.middlewares...)(handler)
+	return r.applyMiddlewares(handler)
 }
