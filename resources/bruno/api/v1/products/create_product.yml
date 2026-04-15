@@ -1,23 +1,23 @@
 info:
-  name: update_product
+  name: create_product
   type: http
-  seq: 4
+  seq: 1
 
 http:
-  method: PATCH
-  url: "{{BASE_URL}}/api/v1/products/1121321523"
+  method: POST
+  url: "{{BASE_URL}}/api/v1/products"
   body:
     type: json
     data: |-
       {
-        "name": "asdasdqeq",
-        "price": 30000,
+        "name": "New Product",
+        "price": 213123213,
+        "category_id": "lol",
         "condition": "good",
         "minimum_age": 18,
         "maximum_age": 99,
         "target_gender": "male",
-        "description": "",
-        "tags": null,
+        "description": "yaaaoo",
         "category": "lol"
       }
   auth: inherit

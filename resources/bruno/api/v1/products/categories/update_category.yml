@@ -1,0 +1,21 @@
+info:
+  name: update_category
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{BASE_URL}}/api/v1/products/categories/WQc5Hr1fIudogsARZDRMX"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "new boi"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
