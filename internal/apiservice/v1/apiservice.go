@@ -41,6 +41,13 @@ func (s *Service) Register(ctx context.Context, env *kernel.Env) error {
 	r.HandleFunc("GET /users/{id}", s.HandleGetUserByID)
 	r.HandleFunc("PATCH /users/{id}", s.HandleUpdateUser)
 
+	r.HandleFunc("POST /products/categories", s.HandleCreateProductCategory)
+	r.HandleFunc("GET /products/categories", s.HandleListProductCategories)
+	r.HandleFunc("GET /products/categories/{id}", s.HandleGetProductCategoryByID)
+	r.HandleFunc("PUT /products/categories/{id}", s.HandleUpdateProductCategory)
+	r.HandleFunc("DELETE /products/categories/{id}", s.HandleDeleteProductCategory)
+
+	r.HandleFunc("POST /products", s.HandleCreateProduct)
 	r.HandleFunc("GET /products", s.HandleListProducts)
 	r.HandleFunc("GET /products/{id}", s.HandleGetProductByID)
 	r.HandleFunc("PATCH /products/{id}", s.HandleUpdateProduct)
