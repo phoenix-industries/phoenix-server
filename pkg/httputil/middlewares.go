@@ -84,3 +84,20 @@ func AuthGuardMiddleware(auth *auth.Auth) Middleware {
 		})
 	}
 }
+
+func AuthRoleMiddleware(auth *auth.Auth, requiredRole auth.Role) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			role, err := GetUserRole(auth, r)
+			if err != nil {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			if !role.Allowed(requiredRole) {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
