@@ -60,8 +60,10 @@ fmt:
 ## deps: install and verify dependencies
 deps:
 	go get -u ./...
-	go mod verify
 	go mod tidy -v
+	go mod verify
+	go mod download
+	go mod vendor
 .PHONY: deps
 
 ## help: print this help message
