@@ -22,7 +22,7 @@ type loginData struct {
 
 func (s *Service) HandleLogin(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	var data loginData
-	if err := httputil.BodyJSON(r, &data); err != nil {
+	if err := httputil.BodyJSON(w, r, &data); err != nil {
 		return httputil.NewStatusError(nil, "invalid request body", http.StatusBadRequest).Response()
 	}
 

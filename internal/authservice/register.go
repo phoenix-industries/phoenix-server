@@ -25,7 +25,7 @@ type registerData struct {
 
 func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	var data registerData
-	if err := httputil.BodyJSON(r, &data); err != nil {
+	if err := httputil.BodyJSON(w, r, &data); err != nil {
 		return httputil.ErrInvalidBody.Response()
 	}
 

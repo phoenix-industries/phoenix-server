@@ -68,7 +68,7 @@ func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) *http
 	}
 
 	var updateData userUpdateData
-	if err := httputil.BodyJSON(r, &updateData); err != nil {
+	if err := httputil.BodyJSON(w, r, &updateData); err != nil {
 		return httputil.ErrInvalidBody.Response()
 	}
 	defer r.Body.Close()

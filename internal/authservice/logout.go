@@ -15,7 +15,7 @@ type logoutData struct {
 
 func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	var data logoutData
-	if err := httputil.BodyJSON(r, &data); err != nil {
+	if err := httputil.BodyJSON(w, r, &data); err != nil {
 		return httputil.NewStatusError(nil, "invalid request body", http.StatusBadRequest).Response()
 	}
 	if data.RefreshToken == "" {

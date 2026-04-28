@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -117,10 +118,18 @@ func CheckAuth(auther *auth.Auth, r *http.Request) error {
 	return nil
 }
 
-func BodyJSON(r *http.Request, v any) error {
+func BodyJSON(w http.ResponseWriter, r *http.Request, v any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, 8*1024)
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			return NewStatusError(
+				nil,
+				fmt.Sprintf("request body too large (max %d bytes)", maxErr.Limit),
+				http.StatusRequestEntityTooLarge,
+			)
+		}
 		return err
 	}
-	r.Body.Close()
 	return nil
 }

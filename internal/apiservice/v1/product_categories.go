@@ -15,7 +15,7 @@ type productCategoryData struct {
 
 func (s *Service) HandleCreateProductCategory(w http.ResponseWriter, r *http.Request) *httputil.Response {
 	var data productCategoryData
-	if err := httputil.BodyJSON(r, &data); err != nil {
+	if err := httputil.BodyJSON(w, r, &data); err != nil {
 		return httputil.ErrInvalidBody.Response()
 	}
 	if data.Name == nil || *data.Name == "" {
@@ -67,7 +67,7 @@ func (s *Service) HandleUpdateProductCategory(w http.ResponseWriter, r *http.Req
 	}
 
 	var updateData productCategoryData
-	if err := httputil.BodyJSON(r, &updateData); err != nil {
+	if err := httputil.BodyJSON(w, r, &updateData); err != nil {
 		return httputil.ErrInvalidBody.Response()
 	}
 
