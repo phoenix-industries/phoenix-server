@@ -1,17 +1,18 @@
 module github.com/phoenix-industries/phoenix-server
 
-go 1.25.5
+go 1.25.7
 
 require (
+	github.com/coder/websocket v1.8.14
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/gorilla/websocket v1.5.3
-	github.com/jackc/pgx/v5 v5.9.1
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
 	github.com/matoous/go-nanoid/v2 v2.1.0
-	github.com/nyaruka/phonenumbers v1.7.1
-	github.com/pressly/goose/v3 v3.27.0
+	github.com/nyaruka/phonenumbers v1.7.2
+	github.com/pressly/goose/v3 v3.27.1
 	golang.org/x/crypto v0.50.0
+	golang.org/x/time v0.15.0
 )
 
 require (
@@ -21,7 +22,6 @@ require (
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
