@@ -15,6 +15,7 @@ import (
 	"github.com/phoenix-industries/phoenix-server/internal/apiservice/v1"
 	"github.com/phoenix-industries/phoenix-server/internal/authservice"
 	"github.com/phoenix-industries/phoenix-server/internal/buildinfo"
+	"github.com/phoenix-industries/phoenix-server/internal/chatservice"
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database"
 	"github.com/phoenix-industries/phoenix-server/pkg/httputil"
@@ -130,14 +131,19 @@ func run(ctx context.Context) error {
 	router.Use(httputil.LoggingMiddleware(logger))
 
 	env := kernel.NewEnv(router, db, auth, logger.WithGroup("kernel"))
-	kernel := kernel.NewKernel(env)
-	if err := kernel.Register(ctx, authservice.New(), apiservice.New()); err != nil {
+	k := kernel.NewKernel(env)
+	services := []kernel.Service{
+		authservice.New(),
+		apiservice.New(),
+		chatservice.New(),
+	}
+	if err := k.Register(ctx, services...); err != nil {
 		return err
 	}
-	if err := kernel.Start(ctx); err != nil {
+	if err := k.Start(ctx); err != nil {
 		return err
 	}
-	defer kernel.Stop(ctx)
+	defer k.Stop(ctx)
 
 	srv := &http.Server{
 		Addr:         *port,

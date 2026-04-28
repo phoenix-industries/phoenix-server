@@ -21,11 +21,9 @@ runtime:
   scripts:
     - type: after-response
       code: |-
-        if (res.body.ok) {
-          bru.deleteVar("TOKEN_TYPE");
-          bru.deleteVar("ACCESS_TOKEN");
-          bru.deleteVar("REFRESH_TOKEN");
-        }
+        bru.deleteVar("TOKEN_TYPE");
+        bru.deleteVar("ACCESS_TOKEN");
+        bru.deleteVar("REFRESH_TOKEN");
 
 settings:
   encodeUrl: true

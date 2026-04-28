@@ -106,7 +106,11 @@ func GetUserRole(auther *auth.Auth, r *http.Request) (auth.Role, error) {
 }
 
 func CheckAuth(auther *auth.Auth, r *http.Request) error {
-	_, err := GetAccessToken(r)
+	token, err := GetAccessToken(r)
+	if err != nil {
+		return ErrUnauthorized
+	}
+	_, err = auther.ParseJWT(token)
 	if err != nil {
 		return ErrUnauthorized
 	}

@@ -24,7 +24,7 @@ request:
     - name: PORT
       value: "5000"
     - name: BASE_URL
-      value: http://localhost:5000
+      value: http://{{HOST}}:{{PORT}}
 bundled: false
 extensions:
   bruno:
