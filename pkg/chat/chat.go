@@ -1,129 +1,161 @@
 package chat
 
 import (
-	"bytes"
-	"log"
-	"net/http"
-	"time"
+	"context"
+	"log/slog"
+	"sync"
 
-	"github.com/gorilla/websocket"
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
+	"github.com/phoenix-industries/phoenix-server/pkg/database"
+	"github.com/phoenix-industries/phoenix-server/pkg/database/models"
 )
 
-const (
-	writeWait        = 10 * time.Second
-	pongWait         = 60 * time.Second
-	pingPeriod       = (pongWait * 9) / 10
-	maxMessageLength = 512
-	readBufferSize   = 1024
-	writeBufferSize  = 1024
-)
-
-var (
-	space   = []byte{' '}
-	newline = []byte{'\n'}
-)
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  readBufferSize,
-	WriteBufferSize: writeBufferSize,
+type Server struct {
+	db      *database.Database
+	logger  *slog.Logger
+	config  *Config
+	mu      sync.RWMutex
+	rooms   map[string]map[string]struct{} // room_id -> user_id
+	clients map[string]*Client             // user_id -> client
 }
 
-// Client is a middleman between the websocket connection and the hub.
-type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
+func NewServer(db *database.Database, logger *slog.Logger, config *Config) *Server {
+	if db == nil {
+		panic("chat: db is required")
+	}
+	if logger == nil {
+		logger = slog.Default().WithGroup("chat")
+	}
+	if config == nil {
+		config = DefaultConfig()
+	}
+	return &Server{
+		db:      db,
+		logger:  logger,
+		config:  config,
+		rooms:   make(map[string]map[string]struct{}),
+		clients: make(map[string]*Client),
+	}
 }
 
-func (c *Client) pongHandler(_ string) error {
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+func (s *Server) NewClient(conn *websocket.Conn, userID string) *Client {
+	return NewClient(conn, userID, s.config.MaxMessagesBuffer)
+}
+
+func (s *Server) Subscribe(c *Client) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	s.addClient(ctx, c)
+	defer s.removeClient(c)
+
+	go func() {
+		defer cancel()
+		for {
+			var msg Message
+			if err := wsjson.Read(ctx, c.conn, &msg); err != nil {
+				if websocket.CloseStatus(err) == websocket.StatusNormalClosure ||
+					websocket.CloseStatus(err) == websocket.StatusGoingAway {
+					return
+				}
+				s.logger.ErrorContext(ctx, "read", "error", err)
+				return
+			}
+			switch msg.Type {
+			case MessageTypeSystem:
+				// TODO
+			case MessageTypeChat:
+				if err := models.ChatMessageInsert(ctx, s.db.Pool(), msg.Data); err != nil {
+					s.logger.ErrorContext(ctx, "chat message insert", "error", err)
+					continue
+				}
+			}
+			s.sendMessage(&msg)
+		}
+	}()
+
+	for {
+		select {
+		case msg := <-c.Message:
+			if err := s.writeTimeout(ctx, c.conn, msg); err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
+func (s *Server) sendMessage(m *Message) {
+	if m == nil || m.Data == nil {
+		return
+	}
+	s.config.MessageLimiter.Wait(context.Background())
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for userID := range s.rooms[m.Data.RoomID] {
+		if userID == m.Data.UserID {
+			continue
+		}
+		if c, ok := s.clients[userID]; ok {
+			select {
+			case c.Message <- m:
+			default:
+				go c.closeSlow()
+			}
+		}
+	}
+}
+
+func (s *Server) addClient(ctx context.Context, c *Client) {
+	rooms, err := models.ChatRoomList(ctx, s.db.Pool(), c.UserID)
+	if err != nil {
+		s.logger.ErrorContext(ctx, "chat room list", "error", err)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.clients[c.UserID] = c
+	for _, room := range rooms {
+		if _, ok := s.rooms[room.ID]; !ok {
+			s.rooms[room.ID] = make(map[string]struct{})
+		}
+		s.rooms[room.ID][c.UserID] = struct{}{}
+	}
+}
+
+func (s *Server) removeClient(c *Client) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.clients, c.UserID)
+	for roomID, users := range s.rooms {
+		delete(users, c.UserID)
+		if len(users) == 0 {
+			delete(s.rooms, roomID)
+		}
+	}
+}
+
+func (s *Server) AddRoom(roomID string, userIDs []string) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, userID := range userIDs {
+		if _, ok := s.clients[userID]; !ok {
+			continue
+		}
+		if _, ok := s.rooms[roomID]; !ok {
+			s.rooms[roomID] = make(map[string]struct{})
+		}
+		s.rooms[roomID][userID] = struct{}{}
+	}
 	return nil
 }
 
-// readPump pumps messages from the websocket connection to the hub.
-//
-// The application runs readPump in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
-func (c *Client) readPump() {
-	defer func() {
-		c.hub.unregister <- c
-		c.conn.Close()
-	}()
-	c.conn.SetReadLimit(maxMessageLength)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(c.pongHandler)
-	for {
-		_, message, err := c.conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
-			}
-			break
-		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.hub.broadcast <- message
-	}
-}
-
-// writePump pumps messages from the hub to the websocket connection.
-//
-// A goroutine running writePump is started for each connection. The
-// application ensures that there is at most one writer to a connection by
-// executing all writes from this goroutine.
-func (c *Client) writePump() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-		c.conn.Close()
-	}()
-	for {
-		select {
-		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
-			w.Write(message)
-
-			// Add queued chat messages to the current websocket message.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.send)
-			}
-
-			if err := w.Close(); err != nil {
-				return
-			}
-		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
-			}
-		}
-	}
-}
-
-func Upgrade(hub *Hub, w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
-	client.hub.register <- client
-
-	// Allow collection of memory referenced by the caller by doing all work in
-	// new goroutines.
-	go client.writePump()
-	go client.readPump()
+func (s *Server) writeTimeout(ctx context.Context, conn *websocket.Conn, v any) error {
+	ctx, cancel := context.WithTimeout(ctx, s.config.writeTimeout)
+	defer cancel()
+	return wsjson.Write(ctx, conn, v)
 }

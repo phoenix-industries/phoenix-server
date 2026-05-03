@@ -128,7 +128,9 @@ func run(ctx context.Context) error {
 
 	router := httputil.NewRouter(logger.WithGroup("http.router"))
 	router.Use(httputil.RecoveryMiddleware(logger))
+	router.Use(httputil.CorsMiddleware())
 	router.Use(httputil.LoggingMiddleware(logger))
+	router.HandleFuncNative("/", httputil.NotFoundHandler(logger))
 
 	env := kernel.NewEnv(router, db, auth, logger.WithGroup("kernel"))
 	k := kernel.NewKernel(env)

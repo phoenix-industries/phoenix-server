@@ -1,0 +1,22 @@
+info:
+  name: direct
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/chat/v1/direct"
+  body:
+    type: json
+    data: |-
+      {
+        "to_id": "Cztv3GImSKkF6eqbPkhr8",
+        "content": "lol"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -31,6 +31,9 @@ func (s *Service) HandleRefresh(w http.ResponseWriter, r *http.Request) *httputi
 		if err != nil {
 			return fmt.Errorf("failed to get session: %w", err)
 		}
+		if session == nil {
+			return httputil.ErrUnauthorized
+		}
 		if time.Now().After(session.ExpiresAt.Add(auth.DefaultJWTDuration)) {
 			return httputil.ErrUnauthorized
 		}

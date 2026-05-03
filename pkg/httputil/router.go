@@ -20,16 +20,13 @@ func NewRouter(logger *slog.Logger) *Router {
 	if logger == nil {
 		logger = slog.Default().WithGroup("http")
 	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", NotFoundHandler(logger))
-
-	return &Router{
-		mux:         mux,
+	r := &Router{
+		mux:         http.NewServeMux(),
 		prefix:      "",
 		logger:      logger,
 		middlewares: []Middleware{},
 	}
+	return r
 }
 
 func (r *Router) Group(prefix string) *Router {
@@ -117,8 +114,8 @@ func (r *Router) wrapHandler(h HandlerFunc) http.Handler {
 				"original_error", res.EmbededError(),
 			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
 		}
 	})
-
 	return r.applyMiddlewares(handler)
 }

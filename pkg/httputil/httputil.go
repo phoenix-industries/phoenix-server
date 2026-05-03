@@ -62,7 +62,10 @@ func Client(r *http.Request) string {
 func GetAccessToken(r *http.Request) (string, error) {
 	header := r.Header.Get("Authorization")
 	if header == "" {
-		return "", ErrUnauthorized
+		header = r.URL.Query().Get("token")
+		if header == "" {
+			return "", ErrUnauthorized
+		}
 	}
 	if !strings.HasPrefix(header, auth.TokenPrefix) {
 		return "", ErrUnauthorized

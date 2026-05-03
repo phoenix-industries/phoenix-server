@@ -3,7 +3,6 @@ package chatservice
 import (
 	"context"
 	"log/slog"
-	"net/http"
 
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/chat"
@@ -16,7 +15,7 @@ type Service struct {
 	db     *database.Database
 	auth   *auth.Auth
 	logger *slog.Logger
-	hub    *chat.Hub
+	server *chat.Server
 }
 
 // must implement kernel.Service
@@ -27,7 +26,7 @@ func New() *Service {
 }
 
 func (s *Service) Name() string {
-	return "chat"
+	return "chat/v1"
 }
 
 func (s *Service) Register(ctx context.Context, env *kernel.Env) error {
@@ -35,13 +34,14 @@ func (s *Service) Register(ctx context.Context, env *kernel.Env) error {
 	s.db = env.Database()
 	s.auth = env.Auth()
 	s.logger = env.Logger().WithGroup(name)
-	s.hub = chat.NewHub()
-	go s.hub.Run()
+	s.server = chat.NewServer(s.db, s.logger.WithGroup(name), chat.DefaultConfig())
 
 	r := env.Router().Group("/" + name)
 	r.Use(httputil.AuthGuardMiddleware(s.auth))
 
-	r.HandleFuncNative("GET /connect", s.HandleConnect)
+	r.HandleFunc("POST /direct", s.HandleSendDirect)
+	r.HandleFunc("GET /rooms", s.HandleListRooms)
+	r.HandleFuncNative("/connect", s.HandleConnect)
 
 	return nil
 }
@@ -52,8 +52,4 @@ func (s *Service) Start(ctx context.Context) error {
 
 func (s *Service) Stop(ctx context.Context) error {
 	return nil
-}
-
-func (s *Service) HandleConnect(w http.ResponseWriter, r *http.Request) {
-	chat.Upgrade(s.hub, w, r)
 }

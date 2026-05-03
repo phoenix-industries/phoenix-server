@@ -1,0 +1,44 @@
+-- +goose Up
+
+CREATE TYPE chat_room_type AS ENUM ('direct', 'group', 'channel');
+
+CREATE TABLE chat_rooms (
+	id TEXT PRIMARY KEY,
+	title TEXT NOT NULL,
+	type chat_room_type NOT NULL,
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE chat_room_members (
+	id TEXT PRIMARY KEY,
+	user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+	room_id TEXT REFERENCES chat_rooms(id) ON DELETE CASCADE,
+	banned BOOLEAN NOT NULL DEFAULT FALSE,
+	joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TYPE chat_message_type AS ENUM ('text', 'image', 'video', 'audio', 'file');
+CREATE TABLE chat_messages (
+	id TEXT PRIMARY KEY,
+	room_id TEXT REFERENCES chat_rooms(id) ON DELETE SET NULL,
+	user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+	type chat_message_type NOT NULL,
+	content TEXT NOT NULL,
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+
+-- +goose Down
+
+DROP TABLE chat_messages;
+DROP TABLE chat_room_members;
+DROP TABLE chat_rooms;
+DROP TYPE chat_room_type;
+DROP TYPE chat_message_type;
