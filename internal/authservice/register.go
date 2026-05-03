@@ -78,6 +78,21 @@ func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) *httput
 			return httputil.NewStatusError(err, "failed to create user", http.StatusInternalServerError)
 		}
 
+		wallet := models.Wallet{
+			UserID:   userID,
+			Name:     "default",
+			Currency: "egp",
+			Balance:  0,
+		}
+		walletID, err := s.auth.GenerateID()
+		if err != nil {
+			return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
+		}
+		wallet.ID = walletID
+		if err := models.WalletInsert(ctx, tx, &wallet); err != nil {
+			return httputil.NewStatusError(err, "failed to create wallet", http.StatusInternalServerError)
+		}
+
 		sessionID, err := s.auth.GenerateID()
 		if err != nil {
 			return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)

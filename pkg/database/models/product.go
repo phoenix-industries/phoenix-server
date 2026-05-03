@@ -15,13 +15,16 @@ type Product struct {
 	Model
 	UserID       string     `db:"user_id" json:"user_id"`
 	Name         string     `db:"name" json:"name"`
-	Price        int        `db:"price" json:"price"`
+	Price        int64      `db:"price" json:"price"`
+	Discount     int64      `db:"discount" json:"discount"`
+	Quantity     int        `db:"quantity" json:"quantity"`
 	CategoryID   string     `db:"category_id" json:"category_id"`
 	Condition    string     `db:"condition" json:"condition"`
 	MinimumAge   int        `db:"minimum_age" json:"minimum_age"`
 	MaximumAge   int        `db:"maximum_age" json:"maximum_age"`
 	TargetGender string     `db:"target_gender" json:"target_gender"`
 	Description  string     `db:"description" json:"description"`
+	Donated      bool       `db:"donated" json:"donated"`
 	Approved     bool       `db:"approved" json:"approved"`
 	Category     string     `db:"category" json:"category"`
 	Tags         *string    `db:"tags" json:"tags,omitempty"`
@@ -41,8 +44,14 @@ func (p *Product) Validate() error {
 	if p.Condition == "" {
 		return errors.New("product condition is required")
 	}
-	if p.Price <= 0 {
-		return errors.New("product price must be greater than 0")
+	if p.Price < 0 {
+		return errors.New("product price cannot be less than 0")
+	}
+	if p.Discount < 0 {
+		return errors.New("product discount cannot be less than 0")
+	}
+	if p.Discount > p.Price {
+		return errors.New("product discount cannot be greater than product price")
 	}
 	if p.MinimumAge < 3 {
 		return errors.New("minimum age must be greater than or equal to 3")
@@ -59,6 +68,9 @@ func (p *Product) Validate() error {
 	if p.Description == "" {
 		return errors.New("product description is required")
 	}
+	if p.Donated && (p.Price != 0 || p.Discount != 0) {
+		return errors.New("donated product cannot have price or discount")
+	}
 	return nil
 }
 
@@ -68,11 +80,28 @@ func ProductInsert(ctx context.Context, db database.DB, product *Product) error 
 	}
 	query := `
 		INSERT INTO products
-		(id, user_id, name, price, category_id, condition, minimum_age, maximum_age, target_gender, description, tags, approved)
+		(id, user_id, name, price, discount, quantity, category_id, condition, donated, minimum_age, maximum_age, target_gender, description, tags, approved)
 		VALUES
-		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, false)
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, false)
 	`
-	_, err := db.Exec(ctx, query, product.ID, product.UserID, product.Name, product.Price, product.CategoryID, product.Condition, product.MinimumAge, product.MaximumAge, product.TargetGender, product.Description, product.Tags)
+	_, err := db.Exec(
+		ctx,
+		query,
+		product.ID,
+		product.UserID,
+		product.Name,
+		product.Price,
+		product.Discount,
+		product.Quantity,
+		product.CategoryID,
+		product.Condition,
+		product.Donated,
+		product.MinimumAge,
+		product.MaximumAge,
+		product.TargetGender,
+		product.Description,
+		product.Tags,
+	)
 	return err
 }
 
@@ -148,15 +177,45 @@ func ProductList(ctx context.Context, db database.DB, requireApproval bool, limi
 	return products, nil
 }
 
+func ProductListByIDs(ctx context.Context, db database.DB, ids []string) ([]*Product, error) {
+	query := `
+		SELECT *
+		FROM products
+		WHERE id = ANY($1) AND deleted_at IS null
+	`
+	var products []*Product
+	if err := pgxscan.Select(ctx, db, &products, query, ids); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return products, nil
+}
+
 func ProductUpdate(ctx context.Context, db database.DB, product *Product) error {
 	query := `
 		UPDATE products
-		SET name = $2, price = $3, category_id = $4, condition = $5, tags = $6,
-			minimum_age = $7, maximum_age = $8, description = $9,
+		SET name = $2, price = $3, discount = $4, quantity = $5, category_id = $6, condition = $7, tags = $8,
+			minimum_age = $9, maximum_age = $10, description = $11,
 			updated_at = CURRENT_TIMESTAMP, approved = false
 		WHERE id = $1 AND deleted_at IS null
 	`
-	_, err := db.Exec(ctx, query, product.ID, product.Name, product.Price, product.CategoryID, product.Condition, product.Tags, product.MinimumAge, product.MaximumAge, product.Description)
+	_, err := db.Exec(
+		ctx,
+		query,
+		product.ID,
+		product.Name,
+		product.Price,
+		product.Discount,
+		product.Quantity,
+		product.CategoryID,
+		product.Condition,
+		product.Tags,
+		product.MinimumAge,
+		product.MaximumAge,
+		product.Description,
+	)
 	return err
 }
 
@@ -166,5 +225,15 @@ func ProductDelete(ctx context.Context, db database.DB, id string) error {
 		SET deleted_at = CURRENT_TIMESTAMP
 		WHERE id = $1 AND deleted_at IS null`
 	_, err := db.Exec(ctx, query, id)
+	return err
+}
+
+func ProductUpdateQuantityByID(ctx context.Context, db database.DB, id string, quantity int) error {
+	query := `
+		UPDATE products
+		SET quantity = $2
+		WHERE id = $1 AND deleted_at IS null
+	`
+	_, err := db.Exec(ctx, query, id, quantity)
 	return err
 }

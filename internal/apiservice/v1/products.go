@@ -131,7 +131,9 @@ func (s *Service) HandleGetProductByID(w http.ResponseWriter, r *http.Request) *
 
 type productUpdateData struct {
 	Name         *string `json:"name"`
-	Price        *int    `json:"price"`
+	Price        *int64  `json:"price"`
+	Discount     *int64  `json:"discount"`
+	Quantity     *int    `json:"quantity"`
 	CategoryID   *string `json:"category_id"`
 	Condition    *string `json:"condition"`
 	MinimumAge   *int    `json:"minimum_age"`
@@ -186,6 +188,12 @@ func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) *h
 		if updateData.Price != nil {
 			product.Price = *updateData.Price
 		}
+		if updateData.Discount != nil {
+			product.Discount = *updateData.Discount
+		}
+		if updateData.Quantity != nil {
+			product.Quantity = *updateData.Quantity
+		}
 		if updateData.CategoryID != nil {
 			product.CategoryID = *updateData.CategoryID
 		}
@@ -239,7 +247,7 @@ func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) *h
 			return fmt.Errorf("failed to get user: %w", err)
 		}
 		if user == nil {
-			return httputil.NewStatusError(nil, "invalid credentials", http.StatusUnauthorized)
+			return httputil.ErrUnauthorized
 		}
 
 		product, err := models.ProductGetByID(ctx, tx, id, false)
@@ -247,10 +255,10 @@ func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) *h
 			return fmt.Errorf("failed to get product: %w", err)
 		}
 		if product == nil {
-			return httputil.NewStatusError(nil, "invalid product", http.StatusBadRequest)
+			return httputil.ErrBadRequest
 		}
 		if product.UserID != user.ID {
-			return httputil.NewStatusError(nil, "invalid credentials", http.StatusUnauthorized)
+			return httputil.ErrUnauthorized
 		}
 
 		if err := models.ProductDelete(r.Context(), s.db.Pool(), id); err != nil {
@@ -264,4 +272,235 @@ func (s *Service) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) *h
 	}
 
 	return httputil.NewResponseOK(http.StatusNoContent, nil)
+}
+
+type productBuyData struct {
+	Products []struct {
+		ID       string `json:"id"`
+		Quantity int    `json:"quantity"`
+	} `json:"products"`
+	ShippingAddress *string `json:"shipping_address"`
+	ShippingNote    *string `json:"shipping_note"`
+}
+
+func (s *Service) HandleBuyProduct(w http.ResponseWriter, r *http.Request) *httputil.Response {
+	const profitMin = 20
+	const profitMax = 1000
+	const profitPercent = 10 // %
+	const shippingFee = 20
+	const maxDonatedCount = 2
+	const maxProductCount = 10
+
+	var data productBuyData
+	if err := httputil.BodyJSON(w, r, &data); err != nil {
+		return httputil.ErrInvalidBody.Response()
+	}
+	if len(data.Products) == 0 || len(data.Products) > maxProductCount {
+		return httputil.ErrBadRequest.Response()
+	}
+	productIDs := make([]string, len(data.Products))
+	quantityMap := make(map[string]int, len(data.Products))
+	for i, p := range data.Products {
+		if p.ID == "" || p.Quantity <= 0 {
+			return httputil.ErrBadRequest.Response()
+		}
+		if _, ok := quantityMap[p.ID]; ok {
+			return httputil.ErrBadRequest.Response()
+		}
+		productIDs[i] = p.ID
+		quantityMap[p.ID] = p.Quantity
+	}
+
+	userID, err := httputil.GetUserID(s.auth, r)
+	if err != nil {
+		return httputil.ErrUnauthorized.Response()
+	}
+
+	ctx := r.Context()
+	var invoice models.Invoice
+	err = s.db.InTx(ctx, func(tx pgx.Tx) error {
+		products, err := models.ProductListByIDs(ctx, tx, productIDs)
+		if err != nil {
+			return httputil.NewStatusError(err, "failed to get products", http.StatusInternalServerError)
+		}
+		if len(products) != len(productIDs) {
+			return httputil.NewStatusError(nil, "invalid product ids", http.StatusBadRequest)
+		}
+
+		donatedCount, err := models.InvoiceItemGetDonatedCount(ctx, tx, userID)
+		if err != nil {
+			return httputil.NewStatusError(err, "failed to get donated count", http.StatusInternalServerError)
+		}
+
+		subtotal, discount := int64(0), int64(0)
+		items := make([]models.InvoiceItem, len(products))
+		for i, product := range products {
+			quantity := quantityMap[product.ID]
+			if quantity > product.Quantity {
+				return httputil.NewStatusError(nil, "insufficient product quantity", http.StatusBadRequest)
+			}
+			quantity64 := int64(quantity)
+			if product.Donated {
+				if quantity > 1 || len(products) > 1 {
+					return httputil.NewStatusError(nil, "donated product cannot have quantity greater than 1, don't be greedy pal", http.StatusBadRequest)
+				}
+				if donatedCount >= maxDonatedCount {
+					return httputil.NewStatusError(nil, "donated count exceeds limit", http.StatusBadRequest)
+				}
+				donatedCount++
+			}
+
+			total := (product.Price - product.Discount) * quantity64
+			if total < 0 {
+				return httputil.NewStatusError(nil, "invalid product", http.StatusBadRequest)
+			}
+			subtotal += product.Price * quantity64
+			discount += product.Discount * quantity64
+
+			itemID, err := s.auth.GenerateID()
+			if err != nil {
+				return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
+			}
+			items[i] = models.InvoiceItem{
+				Model: models.Model{
+					ID: itemID,
+				},
+				ProductID: product.ID,
+				Quantity:  quantity,
+				Discount:  product.Discount,
+				Price:     product.Price,
+				Amount:    total,
+			}
+
+			if err := models.ProductUpdateQuantityByID(ctx, tx, product.ID, product.Quantity-quantity); err != nil {
+				return httputil.NewStatusError(err, "failed to update product quantity", http.StatusInternalServerError)
+			}
+
+			if !product.Donated {
+				sellerWallet, err := models.WalletGetByUserID(ctx, tx, product.UserID)
+				if err != nil {
+					return httputil.NewStatusError(err, "failed to get seller's wallet", http.StatusInternalServerError)
+				}
+				if sellerWallet == nil {
+					return httputil.NewStatusError(nil, "invalid seller's wallet", http.StatusInternalServerError)
+				}
+				transactionID, err := s.auth.GenerateID()
+				if err != nil {
+					return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
+				}
+				profit := min(max(total/profitPercent, profitMin), profitMax)
+				income := total - profit
+				transaction := models.Transaction{
+					Model: models.Model{
+						ID: transactionID,
+					},
+					UserID:      sellerWallet.UserID,
+					WalletID:    sellerWallet.ID,
+					Debit:       0,
+					Credit:      income,
+					Currency:    "egp",
+					Description: "sale",
+					Status:      models.TransactionStatusSuccess,
+				}
+				if err := models.TransactionInsert(ctx, tx, &transaction); err != nil {
+					return httputil.NewStatusError(err, "failed to create transaction", http.StatusInternalServerError)
+				}
+				if err := models.WalletTopupByID(ctx, tx, sellerWallet.ID, income); err != nil {
+					return httputil.NewStatusError(err, "failed to update seller's wallet balance", http.StatusInternalServerError)
+				}
+			}
+		}
+		amount := subtotal - discount
+		if data.ShippingAddress != nil {
+			amount += shippingFee
+		}
+
+		wallet, err := models.WalletGetByUserID(ctx, tx, userID)
+		if err != nil {
+			return httputil.NewStatusError(err, "failed to get user's wallet", http.StatusInternalServerError)
+		}
+		if wallet == nil {
+			return httputil.NewStatusError(nil, "invalid wallet", http.StatusInternalServerError)
+		}
+		if wallet.Balance < amount {
+			return httputil.NewStatusError(nil, "insufficient funds", http.StatusBadRequest)
+		}
+		if err := models.WalletWithdrawByID(ctx, tx, wallet.ID, amount); err != nil {
+			return httputil.NewStatusError(err, "failed to update user's wallet balance", http.StatusInternalServerError)
+		}
+
+		transactionID, err := s.auth.GenerateID()
+		if err != nil {
+			return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
+		}
+		transaction := models.Transaction{
+			Model: models.Model{
+				ID: transactionID,
+			},
+			UserID:      userID,
+			WalletID:    wallet.ID,
+			Debit:       amount,
+			Credit:      0,
+			Currency:    "egp",
+			Description: "purchase",
+			Status:      models.TransactionStatusSuccess,
+		}
+		if err := models.TransactionInsert(ctx, tx, &transaction); err != nil {
+			return httputil.NewStatusError(err, "failed to create transaction", http.StatusInternalServerError)
+		}
+
+		invoiceID, err := s.auth.GenerateID()
+		if err != nil {
+			return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
+		}
+		invoice = models.Invoice{
+			Model: models.Model{
+				ID: invoiceID,
+			},
+			UserID:        userID,
+			TransactionID: transaction.ID,
+			Subtotal:      subtotal,
+			Discount:      discount,
+			Amount:        amount,
+			Currency:      "egp",
+			Description:   "purchase",
+		}
+		if err := models.InvoiceInsert(ctx, tx, &invoice); err != nil {
+			return httputil.NewStatusError(err, "failed to create invoice", http.StatusInternalServerError)
+		}
+
+		for i := range items {
+			items[i].InvoiceID = invoiceID
+		}
+		if err := models.InvoiceItemInsertBatch(ctx, tx, items); err != nil {
+			return httputil.NewStatusError(err, "failed to create invoice item", http.StatusInternalServerError)
+		}
+
+		if data.ShippingAddress != nil {
+			shippingID, err := s.auth.GenerateID()
+			if err != nil {
+				return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
+			}
+			shipping := models.Shipping{
+				Model: models.Model{
+					ID: shippingID,
+				},
+				UserID:    userID,
+				InvoiceID: invoiceID,
+				Fee:       shippingFee,
+				Address:   *data.ShippingAddress,
+				Note:      data.ShippingNote,
+			}
+			if err := models.ShippingInsert(ctx, tx, &shipping); err != nil {
+				return httputil.NewStatusError(err, "failed to create shipping", http.StatusInternalServerError)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return httputil.ResponseFromError(err)
+	}
+
+	return httputil.NewResponseOK(http.StatusNoContent, &invoice)
 }
