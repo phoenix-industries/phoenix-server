@@ -47,6 +47,8 @@ services:
             - ${PORT}:${PORT}
         networks:
             - phoenix_network
+        volumes:
+            - uploads:/app/assets/uploads
 
 networks:
     phoenix_network: {}
