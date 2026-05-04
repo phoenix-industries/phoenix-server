@@ -4,9 +4,11 @@ env_files = [".env", ".env.dev"]
 
 [build]
 cmd = "DEVMODE=1 make bin/phoenix-server"
-bin = "bin/phoenix-server"
 entrypoint = ["./bin/phoenix-server"]
 exclude_regex = ["_test\\.go"]
+
+[build.windows]
+entrypoint = ["bin\\phoenix-server.exe"]
 
 [log]
 time = true
