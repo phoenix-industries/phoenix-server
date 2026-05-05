@@ -72,7 +72,6 @@ func RecoveryMiddleware(logger *slog.Logger) Middleware {
 	}
 }
 
-// TODO: improve and add rate limiting
 func AuthGuardMiddleware(auth *auth.Auth) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

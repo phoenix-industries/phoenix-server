@@ -10,7 +10,7 @@ CREATE TABLE wallets (
 	balance INTEGER NOT NULL,
 	currency TEXT NOT NULL,
 	created_at TIMESTAMP NOT NULL,
-	updated_at TIMESTAMP NOT NULL
+	updated_at TIMESTAMP NOT NULL,
 	deleted_at TIMESTAMP WITH TIME ZONE
 );
 
@@ -22,7 +22,7 @@ CREATE TABLE transactions (
 	currency TEXT NOT NULL,
 	description TEXT,
 	created_at TIMESTAMP NOT NULL,
-	updated_at TIMESTAMP NOT NULL
+	updated_at TIMESTAMP NOT NULL,
 	deleted_at TIMESTAMP WITH TIME ZONE
 );
 
@@ -36,7 +36,7 @@ CREATE TABLE invoices (
 	currency TEXT NOT NULL,
 	description TEXT,
 	created_at TIMESTAMP NOT NULL,
-	updated_at TIMESTAMP NOT NULL
+	updated_at TIMESTAMP NOT NULL,
 	deleted_at TIMESTAMP WITH TIME ZONE
 );
 
@@ -49,7 +49,7 @@ CREATE TABLE invoice_items (
 	discount INTEGER NOT NULL,
 	amount INTEGER NOT NULL,
 	created_at TIMESTAMP NOT NULL,
-	updated_at TIMESTAMP NOT NULL
+	updated_at TIMESTAMP NOT NULL,
 	deleted_at TIMESTAMP WITH TIME ZONE
 );
 

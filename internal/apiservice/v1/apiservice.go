@@ -49,7 +49,7 @@ func (s *Service) Register(ctx context.Context, env *kernel.Env) error {
 
 	r.HandleFunc("POST /products", s.HandleCreateProduct)
 	r.HandleFunc("GET /products", s.HandleListProducts)
-	r.HandleFunc("POST /products/buy", s.HandleBuyProducts)
+	r.HandleFunc("POST /products/buy", s.HandleBuyProduct)
 	r.HandleFunc("GET /products/{id}", s.HandleGetProductByID)
 	r.HandleFunc("PATCH /products/{id}", s.HandleUpdateProduct)
 	r.HandleFunc("DELETE /products/{id}", s.HandleDeleteProduct)

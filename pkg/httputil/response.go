@@ -63,10 +63,10 @@ func ResponseFromError(err error) *Response {
 
 func (r *Response) WriteJSON(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(r.StatusCode)
 	if err := json.NewEncoder(w).Encode(r); err != nil {
 		return err
 	}
-	w.WriteHeader(r.StatusCode)
 	return nil
 }
 
