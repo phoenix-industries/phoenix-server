@@ -1,0 +1,21 @@
+-- +goose Up
+
+CREATE TABLE media (
+	id TEXT PRIMARY KEY,
+	name TEXT NOT NULL,
+	type TEXT NOT NULL,
+	hash TEXT NOT NULL,
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	deleted_at TIMESTAMP WITH TIME ZONE
+);
+CREATE INDEX media_hash_idx ON media(hash);
+
+ALTER TABLE products ADD COLUMN media_id TEXT REFERENCES media(id) ON DELETE SET NULL;
+
+-- +goose Down
+
+DROP TABLE media;
+DROP INDEX media_hash_idx;
+
+ALTER TABLE products DROP COLUMN media_id;

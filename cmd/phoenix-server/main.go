@@ -15,7 +15,8 @@ import (
 	"github.com/phoenix-industries/phoenix-server/internal/apiservice/v1"
 	"github.com/phoenix-industries/phoenix-server/internal/authservice"
 	"github.com/phoenix-industries/phoenix-server/internal/buildinfo"
-	"github.com/phoenix-industries/phoenix-server/internal/chatservice"
+	"github.com/phoenix-industries/phoenix-server/internal/chatservice/v1"
+	"github.com/phoenix-industries/phoenix-server/internal/filesservice/v1"
 	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database"
 	"github.com/phoenix-industries/phoenix-server/pkg/httputil"
@@ -138,6 +139,7 @@ func run(ctx context.Context) error {
 		authservice.New(),
 		apiservice.New(),
 		chatservice.New(),
+		filesservice.New(filesservice.ConfigDefault()),
 	}
 	if err := k.Register(ctx, services...); err != nil {
 		return err

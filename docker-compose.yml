@@ -48,10 +48,11 @@ services:
         networks:
             - phoenix_network
         volumes:
-            - uploads:/app/assets/uploads
+            - uploads:/app/${PHOENIX_UPLOAD_DIR}
 
 networks:
     phoenix_network: {}
 
 volumes:
+    uploads:
     postgres_data:

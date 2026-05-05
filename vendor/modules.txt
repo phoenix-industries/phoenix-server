@@ -6,6 +6,8 @@ github.com/coder/websocket/internal/errd
 github.com/coder/websocket/internal/util
 github.com/coder/websocket/internal/wsjs
 github.com/coder/websocket/wsjson
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+## explicit
 # github.com/georgysavva/scany/v2 v2.1.4
 ## explicit; go 1.18
 github.com/georgysavva/scany/v2/dbscan
@@ -40,6 +42,9 @@ github.com/jackc/puddle/v2/internal/genstack
 # github.com/joho/godotenv v1.5.1
 ## explicit; go 1.12
 github.com/joho/godotenv
+# github.com/klauspost/cpuid/v2 v2.3.0
+## explicit; go 1.22
+github.com/klauspost/cpuid/v2
 # github.com/matoous/go-nanoid/v2 v2.1.0
 ## explicit; go 1.20
 github.com/matoous/go-nanoid/v2
@@ -49,6 +54,8 @@ github.com/mfridman/interpolate
 # github.com/nyaruka/phonenumbers v1.7.2
 ## explicit; go 1.23.0
 github.com/nyaruka/phonenumbers
+# github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+## explicit
 # github.com/pressly/goose/v3 v3.27.1
 ## explicit; go 1.25.7
 github.com/pressly/goose/v3
@@ -65,6 +72,18 @@ github.com/pressly/goose/v3/lock/internal/table
 # github.com/sethvargo/go-retry v0.3.0
 ## explicit; go 1.21
 github.com/sethvargo/go-retry
+# github.com/zeebo/blake3 v0.2.4
+## explicit; go 1.18
+github.com/zeebo/blake3
+github.com/zeebo/blake3/internal/alg
+github.com/zeebo/blake3/internal/alg/compress
+github.com/zeebo/blake3/internal/alg/compress/compress_pure
+github.com/zeebo/blake3/internal/alg/compress/compress_sse41
+github.com/zeebo/blake3/internal/alg/hash
+github.com/zeebo/blake3/internal/alg/hash/hash_avx2
+github.com/zeebo/blake3/internal/alg/hash/hash_pure
+github.com/zeebo/blake3/internal/consts
+github.com/zeebo/blake3/internal/utils
 # go.uber.org/multierr v1.11.0
 ## explicit; go 1.19
 go.uber.org/multierr
@@ -76,6 +95,9 @@ golang.org/x/crypto/scrypt
 ## explicit; go 1.25.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
+# golang.org/x/sys v0.43.0
+## explicit; go 1.25.0
+golang.org/x/sys/unix
 # golang.org/x/text v0.36.0
 ## explicit; go 1.25.0
 golang.org/x/text/cases
