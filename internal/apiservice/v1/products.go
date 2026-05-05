@@ -502,5 +502,5 @@ func (s *Service) HandleBuyProduct(w http.ResponseWriter, r *http.Request) *http
 		return httputil.ResponseFromError(err)
 	}
 
-	return httputil.NewResponseOK(http.StatusNoContent, &invoice)
+	return httputil.NewResponseOK(http.StatusOK, &invoice)
 }
