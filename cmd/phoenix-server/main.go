@@ -25,7 +25,7 @@ import (
 
 const defaultPort = ":5000"
 
-var port = flag.String("port", defaultPort, "")
+var port = flag.String("port", "", "")
 
 func main() {
 	flag.Parse()
@@ -91,7 +91,8 @@ func run(ctx context.Context) error {
 		if *port == "" {
 			*port = defaultPort
 		}
-	} else if (*port)[0] != ':' {
+	}
+	if (*port)[0] != ':' {
 		*port = ":" + *port
 	}
 
