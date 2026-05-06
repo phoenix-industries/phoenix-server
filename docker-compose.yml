@@ -8,7 +8,6 @@ services:
         hostname: postgres
         env_file: ./.env
         environment:
-            - LANG=C
             - POSTGRES_DB=${POSTGRES_DB}
             - POSTGRES_USER=${POSTGRES_USER}
             - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -20,11 +19,11 @@ services:
         volumes:
             - postgres_data:/var/lib/postgresql/data
         healthcheck:
-            test: [ "CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-p", "${POSTGRES_PORT}", "-U", "${POSTGRES_USER}" ]
+            test: [ "CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}" ]
             interval: 10s
             timeout: 10s
             retries: 5
-            start_period: 10s
+            start_period: 30s
 
     server:
         build:
@@ -34,7 +33,8 @@ services:
                 - PORT=${PORT}
         container_name: phoenix_server
         depends_on:
-            - postgres
+            postgres:
+                condition: service_started
         restart: unless-stopped
         env_file: ./.env
         environment:

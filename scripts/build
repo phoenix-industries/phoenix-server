@@ -5,6 +5,7 @@ set -eu
 ROOT="${ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || echo ".")}"
 MODULE="$(go list -m)"
 DEVMODE="${DEVMODE:-0}"
+SERVICE="phoenix-server"
 
 for arg in "$@"; do
 	case "$arg" in
@@ -19,22 +20,6 @@ for arg in "$@"; do
 		;;
 	esac
 done
-
-[ -z "${SERVICE:-}" ] && {
-	services="$(find "$ROOT/cmd" -maxdepth 1 -printf "%P\n" | grep -v '^$')"
-	[ -z "$services" ] && {
-		echo "$(basename "$0"): no service found" >&2
-		exit 1
-	}
-	[ "$(echo "$services" | wc -l 2>/dev/null)" -eq 1 ] &&
-		SERVICE="$services" || {
-		command -v fzf >/dev/null 2>&1 &&
-			SERVICE="$(echo "$services" | fzf)"
-	} || {
-		echo "$(basename "$0"): no service selected" >&2
-		exit 1
-	}
-}
 
 src="$ROOT/cmd/$SERVICE"
 out="$ROOT/bin/$SERVICE"

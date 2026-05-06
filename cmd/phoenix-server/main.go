@@ -30,8 +30,11 @@ var port = flag.String("port", defaultPort, "")
 func main() {
 	flag.Parse()
 
-	// TODO: load env files explicitly
-	if err := godotenv.Load(); err != nil {
+	envfile := ".env"
+	if buildinfo.DevMode() {
+		envfile = ".env.dev"
+	}
+	if err := godotenv.Load(envfile); err != nil {
 		slog.Error("failed to load environment variables", "error", err)
 		os.Exit(1)
 	}
@@ -93,7 +96,6 @@ func run(ctx context.Context) error {
 	}
 
 	logger := slog.Default()
-
 	logger.Info(
 		"build info",
 		"build_tag", buildinfo.BuildTag,
@@ -133,8 +135,7 @@ func run(ctx context.Context) error {
 	router.Use(httputil.LoggingMiddleware(logger))
 	router.HandleFuncNative("/", httputil.NotFoundHandler(logger))
 
-	env := kernel.NewEnv(router, db, auth, logger.WithGroup("kernel"))
-	k := kernel.NewKernel(env)
+	k := kernel.NewKernel(kernel.NewEnv(router, db, auth, logger.WithGroup("kernel")))
 	services := []kernel.Service{
 		authservice.New(),
 		apiservice.New(),
