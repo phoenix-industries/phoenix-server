@@ -25,6 +25,9 @@ request:
       value: "5000"
     - name: BASE_URL
       value: http://{{HOST}}:{{PORT}}
+      disabled: true
+    - name: BASE_URL
+      value: https://osama.alwaysdata.net
 bundled: false
 extensions:
   bruno:
