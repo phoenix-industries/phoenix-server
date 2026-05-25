@@ -1,0 +1,21 @@
+info:
+  name: update_me
+  type: http
+  seq: 5
+
+http:
+  method: PATCH
+  url: "{{BASE_URL}}/api/v1/users/me"
+  body:
+    type: json
+    data: |-
+      {
+        "city": "test"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -21,9 +21,16 @@ type userUpdateData struct {
 }
 
 func (s *Service) HandleGetUsers(w http.ResponseWriter, r *http.Request) *httputil.Response {
+	role, err := httputil.GetUserRole(s.auth, r)
+	if err != nil {
+		return httputil.NewStatusError(err, "failed to get user role", http.StatusInternalServerError).Response()
+	}
+	if !role.Allowed(auth.RoleAdmin) {
+		return httputil.NewStatusError(nil, "user not allowed", http.StatusForbidden).Response()
+	}
+
 	limit := 10
 	offset := 0
-
 	query := r.URL.Query()
 	if limitQuery := query.Get("limit"); limitQuery != "" {
 		limit, _ = strconv.Atoi(limitQuery)
@@ -53,10 +60,20 @@ func (s *Service) HandleGetUserByID(w http.ResponseWriter, r *http.Request) *htt
 	if id == "" {
 		return httputil.NewStatusError(nil, "invalid request", http.StatusBadRequest).Response()
 	}
+	if id == "me" {
+		cID, err := httputil.GetUserID(s.auth, r)
+		if err != nil {
+			return httputil.NewStatusError(err, "failed to get user id", http.StatusInternalServerError).Response()
+		}
+		id = cID
+	}
 
 	user, err := models.UserGetByID(r.Context(), s.db.Pool(), id)
 	if err != nil {
 		return httputil.NewStatusError(err, "failed to get user", http.StatusInternalServerError).Response()
+	}
+	if user == nil {
+		return httputil.NewStatusError(nil, "user not found", http.StatusNotFound).Response()
 	}
 
 	return httputil.NewResponseOK(http.StatusOK, user)
@@ -66,6 +83,13 @@ func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) *http
 	id := r.PathValue("id")
 	if id == "" {
 		return httputil.NewStatusError(nil, "invalid request", http.StatusBadRequest).Response()
+	}
+	if id == "me" {
+		cID, err := httputil.GetUserID(s.auth, r)
+		if err != nil {
+			return httputil.NewStatusError(err, "failed to get user id", http.StatusInternalServerError).Response()
+		}
+		id = cID
 	}
 
 	var updateData userUpdateData
@@ -79,11 +103,11 @@ func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) *http
 		return httputil.NewStatusError(err, "failed to get user role", http.StatusInternalServerError).Response()
 	}
 	if !role.Allowed(auth.RoleAdmin) {
-		cuID, err := httputil.GetUserID(s.auth, r)
+		cID, err := httputil.GetUserID(s.auth, r)
 		if err != nil {
 			return httputil.NewStatusError(err, "failed to get user id", http.StatusInternalServerError).Response()
 		}
-		if cuID != id {
+		if cID != id {
 			return httputil.NewStatusError(nil, "user not allowed", http.StatusForbidden).Response()
 		}
 	}
