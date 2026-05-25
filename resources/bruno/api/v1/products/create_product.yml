@@ -12,10 +12,11 @@ http:
       {
         "name": "New Product",
         "price": 213123213,
-        "category_id": "xfsnSK5SsK2CqT6eZMwzb",
+        "category_id": "rzd_aEdEfkYPidwheWjuf",
         "condition": "good",
         "minimum_age": 18,
         "maximum_age": 99,
+        "donated": false,
         "target_gender": "male",
         "description": "yaaaoo",
         "category": "lol"

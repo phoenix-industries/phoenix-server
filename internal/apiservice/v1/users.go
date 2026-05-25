@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/phoenix-industries/phoenix-server/pkg/auth"
 	"github.com/phoenix-industries/phoenix-server/pkg/database/models"
 	"github.com/phoenix-industries/phoenix-server/pkg/httputil"
 )
@@ -73,9 +74,26 @@ func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) *http
 	}
 	defer r.Body.Close()
 
+	role, err := httputil.GetUserRole(s.auth, r)
+	if err != nil {
+		return httputil.NewStatusError(err, "failed to get user role", http.StatusInternalServerError).Response()
+	}
+	if !role.Allowed(auth.RoleAdmin) {
+		cuID, err := httputil.GetUserID(s.auth, r)
+		if err != nil {
+			return httputil.NewStatusError(err, "failed to get user id", http.StatusInternalServerError).Response()
+		}
+		if cuID != id {
+			return httputil.NewStatusError(nil, "user not allowed", http.StatusForbidden).Response()
+		}
+	}
+
 	user, err := models.UserGetByID(r.Context(), s.db.Pool(), id)
 	if err != nil {
 		return httputil.NewStatusError(err, "failed to get user", http.StatusInternalServerError).Response()
+	}
+	if user == nil {
+		return httputil.NewStatusError(nil, "user not found", http.StatusNotFound).Response()
 	}
 	if updateData.Name != nil {
 		user.Name = *updateData.Name
@@ -87,13 +105,13 @@ func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) *http
 		user.Phone = *updateData.Phone
 	}
 	if updateData.City != nil {
-		user.City = *updateData.City
+		user.City = updateData.City
 	}
 	if updateData.Governorate != nil {
-		user.Governorate = *updateData.Governorate
+		user.Governorate = updateData.Governorate
 	}
 	if updateData.Address != nil {
-		user.Address = *updateData.Address
+		user.Address = updateData.Address
 	}
 	if updateData.Birthdate != nil {
 		user.Birthdate = *updateData.Birthdate

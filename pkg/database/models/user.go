@@ -12,17 +12,36 @@ import (
 	"github.com/phoenix-industries/phoenix-server/pkg/validate"
 )
 
+type UserGender string
+
+const (
+	GenderMale   UserGender = "male"
+	GenderFemale UserGender = "female"
+)
+
+func (g UserGender) String() string {
+	return string(g)
+}
+
+func (g UserGender) Validate() error {
+	if g != GenderMale && g != GenderFemale {
+		return errors.New("invalid gender")
+	}
+	return nil
+}
+
 type User struct {
 	Model
-	Name        string    `db:"name" json:"name"`
-	Email       string    `db:"email" json:"email"`
-	Phone       string    `db:"phone" json:"phone"`
-	Role        auth.Role `db:"role" json:"role"`
-	Password    string    `db:"password" json:"-"`
-	City        string    `db:"city" json:"city"`
-	Governorate string    `db:"governorate" json:"governorate"`
-	Address     string    `db:"address" json:"address"`
-	Birthdate   time.Time `db:"birthdate" json:"birthdate"`
+	Name        string     `db:"name" json:"name"`
+	Email       string     `db:"email" json:"email"`
+	Phone       string     `db:"phone" json:"phone"`
+	Role        auth.Role  `db:"role" json:"role"`
+	Password    string     `db:"password" json:"-"`
+	Gender      UserGender `db:"gender" json:"gender"`
+	City        *string    `db:"city" json:"city,omitempty"`
+	Governorate *string    `db:"governorate" json:"governorate,omitempty"`
+	Address     *string    `db:"address" json:"address,omitempty"`
+	Birthdate   time.Time  `db:"birthdate" json:"birthdate"`
 }
 
 func (u *User) Validate() error {
@@ -38,14 +57,11 @@ func (u *User) Validate() error {
 	if u.Role == "" {
 		return errors.New("role is required")
 	}
-	if u.City == "" {
-		return errors.New("city is required")
-	}
-	if u.Governorate == "" {
-		return errors.New("governorate is required")
-	}
 	if u.Birthdate.IsZero() {
 		return errors.New("birthdate is required")
+	}
+	if err := u.Gender.Validate(); err != nil {
+		return err
 	}
 	if err := validate.Email(u.Email); err != nil {
 		return err
@@ -63,16 +79,16 @@ func UserInsert(ctx context.Context, db database.DB, user *User) error {
 	if user.Role == "" {
 		user.Role = auth.RoleMember
 	}
-	if user.Password == "" {
-		return errors.New("password is not set")
+	if err := user.Validate(); err != nil {
+		return err
 	}
 	query := `
 		INSERT INTO users
-		(id, name, email, phone, role, city, governorate, address, password, birthdate)
+		(id, name, email, phone, role, gender, city, governorate, address, password, birthdate)
 		VALUES
-		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
-	_, err := db.Exec(ctx, query, user.ID, user.Name, user.Email, user.Phone, user.Role, user.City, user.Governorate, user.Address, user.Password, user.Birthdate)
+	_, err := db.Exec(ctx, query, user.ID, user.Name, user.Email, user.Phone, user.Role, user.Gender, user.City, user.Governorate, user.Address, user.Password, user.Birthdate)
 	return err
 }
 
@@ -189,6 +205,9 @@ func UserExistsWithPhone(ctx context.Context, db database.DB, phone string) (boo
 }
 
 func UserUpdate(ctx context.Context, db database.DB, user *User) error {
+	if err := user.Validate(); err != nil {
+		return err
+	}
 	query := `
 		UPDATE users
 		SET name = $2, email = $3, phone = $4, city = $5, governorate = $6,

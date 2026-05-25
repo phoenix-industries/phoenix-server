@@ -13,14 +13,12 @@ import (
 )
 
 type registerData struct {
-	Name        string    `json:"name"`
-	Email       string    `json:"email"`
-	Phone       string    `json:"phone"`
-	Password    string    `json:"password"`
-	City        string    `json:"city"`
-	Governorate string    `json:"governorate"`
-	Address     string    `json:"address"`
-	Birthdate   time.Time `json:"birthdate"`
+	Name      string            `json:"name"`
+	Email     string            `json:"email"`
+	Phone     string            `json:"phone"`
+	Password  string            `json:"password"`
+	Gender    models.UserGender `json:"gender"`
+	Birthdate time.Time         `json:"birthdate"`
 }
 
 func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) *httputil.Response {
@@ -34,14 +32,12 @@ func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) *httput
 	}
 
 	user := models.User{
-		Name:        data.Name,
-		Email:       data.Email,
-		Phone:       data.Phone,
-		Role:        auth.RoleMember,
-		City:        data.City,
-		Governorate: data.Governorate,
-		Address:     data.Address,
-		Birthdate:   data.Birthdate,
+		Name:      data.Name,
+		Email:     data.Email,
+		Phone:     data.Phone,
+		Role:      auth.RoleMember,
+		Gender:    data.Gender,
+		Birthdate: data.Birthdate,
 	}
 	if err := user.Validate(); err != nil {
 		return httputil.NewStatusError(nil, err.Error(), http.StatusBadRequest).Response()
