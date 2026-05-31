@@ -1,3 +1,16 @@
+v1.7.5 (2026-05-25)
+-------------------------
+ * Update metadata
+
+v1.7.4 (2026-05-11)
+-------------------------
+ * Fix stale Ahmedabad geocoding test after upstream data update
+ * Updated metadata
+
+v1.7.3 (2026-05-11)
+-------------------------
+ * Update metadata
+
 v1.7.2 (2026-04-27)
 -------------------------
  * Update metadata
