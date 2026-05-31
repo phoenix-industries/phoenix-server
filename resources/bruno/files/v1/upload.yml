@@ -12,7 +12,7 @@ http:
       - name: file
         type: file
         value:
-          - /home/osama/pics/screenshots/20260505-235114.png
+          - /home/osama/pics/memes/ddb6bb0ea3c48cf6586fa28911f53f17-2978734735.jpg
   auth: inherit
 
 settings:

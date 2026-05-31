@@ -28,13 +28,6 @@ request:
     - name: BASE_URL
       value: https://osama.alwaysdata.net
       disabled: true
-  scripts:
-    - type: before-request
-      code: |-
-        const last = bru.getVar("AUTH_LAST_REFRESH");
-        if (Date.now() - last >= 5 * 60 * 1000) {
-          await bru.runRequest("auth/refresh");
-        }
 bundled: false
 extensions:
   bruno:

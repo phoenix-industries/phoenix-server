@@ -115,7 +115,7 @@ func ProductGetByID(ctx context.Context, db database.DB, id string, requireAppro
 		FROM products p
 		LEFT JOIN product_categories pc
 			ON p.category_id = pc.id AND pc.deleted_at IS null
-		WHERE p.id = $1 AND p.deleted_at IS null
+		WHERE p.id = $1 AND p.user_id IS NOT null AND p.deleted_at IS null
 	`
 	if requireApproval {
 		query += " AND p.approved = true"
@@ -152,15 +152,15 @@ func ProductList(ctx context.Context, db database.DB, requireApproval bool, limi
 		FROM products p
 		LEFT JOIN product_categories pc
 			ON p.category_id = pc.id AND pc.deleted_at IS null
-		WHERE p.deleted_at IS null
+		WHERE p.user_id IS NOT null AND p.deleted_at IS null
 	`
 	if requireApproval {
 		query += " AND p.approved = true"
 	}
 	if filter != nil {
 		if filter.Name != "" {
-			args = append(args, filter.Name)
-			query += fmt.Sprintf(" AND p.name ILIKE '%%$%d%%'", len(args))
+			args = append(args, fmt.Sprintf("%%%s%%", filter.Name))
+			query += fmt.Sprintf(" AND p.name ILIKE $%d", len(args))
 		}
 		if filter.CategoryID != "" {
 			args = append(args, filter.CategoryID)
@@ -196,7 +196,7 @@ func ProductListByIDs(ctx context.Context, db database.DB, ids []string) ([]*Pro
 	query := `
 		SELECT *
 		FROM products
-		WHERE id = ANY($1::text[])
+		WHERE id = ANY($1::text[]) AND user_id IS NOT null
 	`
 	var products []*Product
 	if err := pgxscan.Select(ctx, db, &products, query, ids); err != nil {
@@ -240,7 +240,8 @@ func ProductDelete(ctx context.Context, db database.DB, id string) error {
 	query := `
 		UPDATE products
 		SET deleted_at = CURRENT_TIMESTAMP
-		WHERE id = $1 AND deleted_at IS null`
+		WHERE id = $1 AND deleted_at IS null
+	`
 	_, err := db.Exec(ctx, query, id)
 	return err
 }
