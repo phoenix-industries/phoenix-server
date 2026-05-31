@@ -46,7 +46,7 @@ func WalletGetByUserID(ctx context.Context, db database.DB, userID string) (*Wal
 func WalletUpdateBalanceByID(ctx context.Context, db database.DB, id string, balance int64) error {
 	query := `
 		UPDATE wallets
-		SET balance = $2
+		SET balance = $2, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 	_, err := db.Exec(ctx, query, id, balance)
@@ -56,27 +56,47 @@ func WalletUpdateBalanceByID(ctx context.Context, db database.DB, id string, bal
 func WalletUpdateBalanceByUserID(ctx context.Context, db database.DB, userID string, balance int64) error {
 	query := `
 		UPDATE wallets
-		SET balance = $2
+		SET balance = $2, updated_at = CURRENT_TIMESTAMP
 		WHERE user_id = $1 AND deleted_at IS NULL
 	`
 	_, err := db.Exec(ctx, query, userID, balance)
 	return err
 }
 
-func WalletTopupByID(ctx context.Context, db database.DB, userID string, amount int64) error {
+func WalletTopupByID(ctx context.Context, db database.DB, id string, amount int64) error {
 	query := `
 		UPDATE wallets
-		SET balance = balance + $2
+		SET balance = balance + $2, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+	_, err := db.Exec(ctx, query, id, amount)
+	return err
+}
+
+func WalletTopupByUserID(ctx context.Context, db database.DB, userID string, amount int64) error {
+	query := `
+		UPDATE wallets
+		SET balance = balance + $2, updated_at = CURRENT_TIMESTAMP
 		WHERE user_id = $1 AND deleted_at IS NULL
 	`
 	_, err := db.Exec(ctx, query, userID, amount)
 	return err
 }
 
-func WalletWithdrawByID(ctx context.Context, db database.DB, userID string, amount int64) error {
+func WalletWithdrawByID(ctx context.Context, db database.DB, id string, amount int64) error {
 	query := `
 		UPDATE wallets
-		SET balance = balance - $2
+		SET balance = balance - $2, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+	_, err := db.Exec(ctx, query, id, amount)
+	return err
+}
+
+func WalletWithdrawByUserID(ctx context.Context, db database.DB, userID string, amount int64) error {
+	query := `
+		UPDATE wallets
+		SET balance = balance - $2, updated_at = CURRENT_TIMESTAMP
 		WHERE user_id = $1 AND deleted_at IS NULL
 	`
 	_, err := db.Exec(ctx, query, userID, amount)

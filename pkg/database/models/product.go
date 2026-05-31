@@ -14,6 +14,7 @@ import (
 type Product struct {
 	Model
 	UserID       string     `db:"user_id" json:"user_id"`
+	ImageID      *string    `db:"image_id" json:"image_id"`
 	Name         string     `db:"name" json:"name"`
 	Price        int64      `db:"price" json:"price"`
 	Discount     int64      `db:"discount" json:"discount"`
@@ -27,6 +28,7 @@ type Product struct {
 	Donated      bool       `db:"donated" json:"donated"`
 	Approved     bool       `db:"approved" json:"approved"`
 	Category     string     `db:"category" json:"category"`
+	Brand        *string    `db:"brand" json:"brand"`
 	Tags         *string    `db:"tags" json:"tags,omitempty"`
 	ReviewedAt   *time.Time `db:"reviewed_at" json:"reviewed_at"`
 }
@@ -80,9 +82,9 @@ func ProductInsert(ctx context.Context, db database.DB, product *Product) error 
 	}
 	query := `
 		INSERT INTO products
-		(id, user_id, name, price, discount, quantity, category_id, condition, donated, minimum_age, maximum_age, target_gender, description, tags, approved)
+		(id, user_id, name, price, discount, quantity, category_id, condition, donated, minimum_age, maximum_age, target_gender, description, tags, image_id, approved)
 		VALUES
-		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, false)
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, false)
 	`
 	_, err := db.Exec(
 		ctx,
@@ -101,6 +103,7 @@ func ProductInsert(ctx context.Context, db database.DB, product *Product) error 
 		product.TargetGender,
 		product.Description,
 		product.Tags,
+		product.ImageID,
 	)
 	return err
 }
@@ -111,10 +114,13 @@ func ProductGetByID(ctx context.Context, db database.DB, id string, requireAppro
 		FROM products p
 		LEFT JOIN product_categories pc
 			ON p.category_id = pc.id AND pc.deleted_at IS null
-		WHERE p.id = $1 AND p.deleted_at IS null AND p.approved = $2
+		WHERE p.id = $1 AND p.deleted_at IS null
 	`
+	if requireApproval {
+		query += " AND p.approved = true"
+	}
 	var product Product
-	err := pgxscan.Get(ctx, db, &product, query, id, requireApproval)
+	err := pgxscan.Get(ctx, db, &product, query, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -125,16 +131,23 @@ func ProductGetByID(ctx context.Context, db database.DB, id string, requireAppro
 }
 
 type ProductFilter struct {
-	Name      string
-	Category  string
-	Condition string
-	Price     [2]int
+	Name       string
+	CategoryID string
+	Condition  string
+	Price      [2]int
+}
+
+type ProductListData struct {
+	Product
+	User User `db:"user" json:"user"`
 }
 
 func ProductList(ctx context.Context, db database.DB, requireApproval bool, limit int, offset int, filter *ProductFilter) ([]*Product, error) {
 	args := []any{limit, offset}
 	query := `
-		SELECT p.*, pc.name as category
+		SELECT
+			p.*,
+			pc.name as category
 		FROM products p
 		LEFT JOIN product_categories pc
 			ON p.category_id = pc.id AND pc.deleted_at IS null
@@ -148,9 +161,9 @@ func ProductList(ctx context.Context, db database.DB, requireApproval bool, limi
 			args = append(args, filter.Name)
 			query += fmt.Sprintf(" AND p.name ILIKE '%%$%d%%'", len(args))
 		}
-		if filter.Category != "" {
-			args = append(args, filter.Category)
-			query += fmt.Sprintf(" AND pc.name = $%d", len(args))
+		if filter.CategoryID != "" {
+			args = append(args, filter.CategoryID)
+			query += fmt.Sprintf(" AND pc.id = $%d", len(args))
 		}
 		if filter.Condition != "" {
 			args = append(args, filter.Condition)
@@ -162,6 +175,7 @@ func ProductList(ctx context.Context, db database.DB, requireApproval bool, limi
 		}
 	}
 	query += `
+		GROUP BY p.id, pc.id
 		ORDER BY p.created_at DESC
 		LIMIT $1
 		OFFSET $2
@@ -181,7 +195,7 @@ func ProductListByIDs(ctx context.Context, db database.DB, ids []string) ([]*Pro
 	query := `
 		SELECT *
 		FROM products
-		WHERE id = ANY($1) AND deleted_at IS null
+		WHERE id = ANY($1::text[])
 	`
 	var products []*Product
 	if err := pgxscan.Select(ctx, db, &products, query, ids); err != nil {
@@ -197,7 +211,7 @@ func ProductUpdate(ctx context.Context, db database.DB, product *Product) error 
 	query := `
 		UPDATE products
 		SET name = $2, price = $3, discount = $4, quantity = $5, category_id = $6, condition = $7, tags = $8,
-			minimum_age = $9, maximum_age = $10, description = $11,
+			minimum_age = $9, maximum_age = $10, description = $11, image_id = $12,
 			updated_at = CURRENT_TIMESTAMP, approved = false
 		WHERE id = $1 AND deleted_at IS null
 	`
@@ -215,6 +229,7 @@ func ProductUpdate(ctx context.Context, db database.DB, product *Product) error 
 		product.MinimumAge,
 		product.MaximumAge,
 		product.Description,
+		product.ImageID,
 	)
 	return err
 }

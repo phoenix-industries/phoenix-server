@@ -38,6 +38,7 @@ type User struct {
 	Role        auth.Role  `db:"role" json:"role"`
 	Password    string     `db:"password" json:"-"`
 	Gender      UserGender `db:"gender" json:"gender"`
+	PictureID   *string    `db:"picture_id" json:"picture_id"`
 	City        *string    `db:"city" json:"city,omitempty"`
 	Governorate *string    `db:"governorate" json:"governorate,omitempty"`
 	Address     *string    `db:"address" json:"address,omitempty"`
@@ -84,11 +85,11 @@ func UserInsert(ctx context.Context, db database.DB, user *User) error {
 	}
 	query := `
 		INSERT INTO users
-		(id, name, email, phone, role, gender, city, governorate, address, password, birthdate)
+		(id, name, email, phone, role, gender, picture_id, city, governorate, address, password, birthdate)
 		VALUES
-		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
-	_, err := db.Exec(ctx, query, user.ID, user.Name, user.Email, user.Phone, user.Role, user.Gender, user.City, user.Governorate, user.Address, user.Password, user.Birthdate)
+	_, err := db.Exec(ctx, query, user.ID, user.Name, user.Email, user.Phone, user.Role, user.Gender, user.PictureID, user.City, user.Governorate, user.Address, user.Password, user.Birthdate)
 	return err
 }
 
@@ -211,10 +212,10 @@ func UserUpdate(ctx context.Context, db database.DB, user *User) error {
 	query := `
 		UPDATE users
 		SET name = $2, email = $3, phone = $4, city = $5, governorate = $6,
-			address = $7, birthdate = $8, updated_at = CURRENT_TIMESTAMP
+			address = $7, birthdate = $8, picture_id = $9, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1 AND deleted_at IS null
 	`
-	if _, err := db.Exec(ctx, query, user.ID, user.Name, user.Email, user.Phone, user.City, user.Governorate, user.Address, user.Birthdate); err != nil {
+	if _, err := db.Exec(ctx, query, user.ID, user.Name, user.Email, user.Phone, user.City, user.Governorate, user.Address, user.Birthdate, user.PictureID); err != nil {
 		return err
 	}
 	return nil

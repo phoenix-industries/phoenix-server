@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/jackc/pgx/v5"
 	"github.com/phoenix-industries/phoenix-server/pkg/database"
 )
 
@@ -43,6 +44,9 @@ func ProductCategoryGetByID(ctx context.Context, db database.DB, id string) (*Pr
 	var category ProductCategory
 	err := pgxscan.Get(ctx, db, &category, query, id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -59,6 +63,9 @@ func ProductCategoryGetAll(ctx context.Context, db database.DB) ([]*ProductCateg
 	var categories []*ProductCategory
 	err := pgxscan.Select(ctx, db, &categories, query)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return categories, nil
