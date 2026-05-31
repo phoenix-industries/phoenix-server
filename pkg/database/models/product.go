@@ -82,9 +82,9 @@ func ProductInsert(ctx context.Context, db database.DB, product *Product) error 
 	}
 	query := `
 		INSERT INTO products
-		(id, user_id, name, price, discount, quantity, category_id, condition, donated, minimum_age, maximum_age, target_gender, description, tags, image_id, approved)
+		(id, user_id, name, price, discount, quantity, category_id, condition, donated, minimum_age, maximum_age, target_gender, description, tags, image_id, brand, approved)
 		VALUES
-		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, false)
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, false)
 	`
 	_, err := db.Exec(
 		ctx,
@@ -104,6 +104,7 @@ func ProductInsert(ctx context.Context, db database.DB, product *Product) error 
 		product.Description,
 		product.Tags,
 		product.ImageID,
+		product.Brand,
 	)
 	return err
 }
@@ -211,7 +212,7 @@ func ProductUpdate(ctx context.Context, db database.DB, product *Product) error 
 	query := `
 		UPDATE products
 		SET name = $2, price = $3, discount = $4, quantity = $5, category_id = $6, condition = $7, tags = $8,
-			minimum_age = $9, maximum_age = $10, description = $11, image_id = $12,
+			minimum_age = $9, maximum_age = $10, description = $11, image_id = $12, brand = $13,
 			updated_at = CURRENT_TIMESTAMP, approved = false
 		WHERE id = $1 AND deleted_at IS null
 	`
@@ -230,6 +231,7 @@ func ProductUpdate(ctx context.Context, db database.DB, product *Product) error 
 		product.MaximumAge,
 		product.Description,
 		product.ImageID,
+		product.Brand,
 	)
 	return err
 }

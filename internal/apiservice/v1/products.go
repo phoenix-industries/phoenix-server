@@ -151,6 +151,7 @@ type productUpdateData struct {
 	Description  *string `json:"description"`
 	Tags         *string `json:"tags"`
 	Category     *string `json:"category"`
+	Brand        *string `json:"brand"`
 }
 
 func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) *httputil.Response {
@@ -226,6 +227,9 @@ func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) *h
 		}
 		if updateData.ImageID != nil {
 			product.ImageID = updateData.ImageID
+		}
+		if updateData.Brand != nil {
+			product.Brand = updateData.Brand
 		}
 
 		if err := models.ProductUpdate(ctx, tx, product); err != nil {
