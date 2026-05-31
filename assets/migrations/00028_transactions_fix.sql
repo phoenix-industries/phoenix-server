@@ -1,0 +1,13 @@
+-- +goose Up
+ALTER TABLE transactions DROP COLUMN amount;
+ALTER TABLE transactions ADD COLUMN credit BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE transactions ADD COLUMN debit BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE wallets DROP COLUMN balance;
+ALTER TABLE wallets ADD COLUMN balance BIGINT NOT NULL DEFAULT 0;
+
+-- +goose Down
+ALTER TABLE transactions DROP COLUMN credit;
+ALTER TABLE transactions DROP COLUMN debit;
+ALTER TABLE transactions ADD COLUMN amount INTEGER NOT NULL;
+ALTER TABLE wallets DROP COLUMN balance;
+ALTER TABLE wallets ADD COLUMN balance INTEGER NOT NULL;
