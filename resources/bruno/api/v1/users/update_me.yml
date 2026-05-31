@@ -10,7 +10,8 @@ http:
     type: json
     data: |-
       {
-        "city": "test"
+        "city": "test",
+        "picture_id": "FhP5sWlFwQZ9gFFE2X-Ie"
       }
   auth: inherit
 

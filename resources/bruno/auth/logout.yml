@@ -21,9 +21,8 @@ runtime:
   scripts:
     - type: after-response
       code: |-
-        bru.deleteVar("TOKEN_TYPE");
-        bru.deleteVar("ACCESS_TOKEN");
-        bru.deleteVar("REFRESH_TOKEN");
+        bru.deleteVar("AUTH_DATA");
+        bru.deleteVar("AUTH_LAST_REFRESH");
 
 settings:
   encodeUrl: true

@@ -12,7 +12,7 @@ http:
       - name: file
         type: file
         value:
-          - /home/osama/pics/screenshots/20260426-202831.png
+          - /home/osama/pics/screenshots/20260505-235114.png
   auth: inherit
 
 settings:

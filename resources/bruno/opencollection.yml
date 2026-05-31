@@ -17,7 +17,7 @@ config:
 request:
   auth:
     type: bearer
-    token: "{{ACCESS_TOKEN}}"
+    token: "{{AUTH_DATA.access_token}}"
   variables:
     - name: HOST
       value: localhost
@@ -28,9 +28,20 @@ request:
     - name: BASE_URL
       value: https://osama.alwaysdata.net
       disabled: true
+  scripts:
+    - type: before-request
+      code: |-
+        const last = bru.getVar("AUTH_LAST_REFRESH");
+        if (Date.now() - last >= 5 * 60 * 1000) {
+          await bru.runRequest("auth/refresh");
+        }
 bundled: false
 extensions:
   bruno:
     ignore:
       - node_modules
       - .git
+    presets:
+      request:
+        type: http
+        url: "{{BASE_URL}}"

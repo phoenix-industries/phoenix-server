@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{BASE_URL}}/files/v1/download/n-aLhzYgsUxjc9lHFa8AS"
+  url: "{{BASE_URL}}/files/v1/download/FhP5sWlFwQZ9gFFE2X-Ie"
   auth: inherit
 
 settings:

@@ -10,7 +10,7 @@ http:
     type: json
     data: |-
       {
-        "refresh_token": "{{REFRESH_TOKEN}}"
+        "refresh_token": "{{AUTH_DATA.refresh_token}}"
       }
   auth: inherit
 
@@ -19,9 +19,8 @@ runtime:
     - type: after-response
       code: |-
         if (res.body.ok) {
-          bru.setVar("TOKEN_TYPE", res.body.data.token_type);
-          bru.setVar("ACCESS_TOKEN", res.body.data.access_token);
-          bru.setVar("REFRESH_TOKEN", res.body.data.refresh_token);
+          bru.setVar("AUTH_DATA", res.body.data);
+          bru.setVar("AUTH_LAST_REFRESH", Date.now());
         }
 
 settings:

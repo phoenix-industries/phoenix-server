@@ -1,0 +1,26 @@
+info:
+  name: buy
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/api/v1/products/buy"
+  body:
+    type: json
+    data: |-
+      {
+        "products": [
+          {
+            "id": "in0mJzSxYJpA8z-ZYAWLQ",
+            "quantity": 1
+          }
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

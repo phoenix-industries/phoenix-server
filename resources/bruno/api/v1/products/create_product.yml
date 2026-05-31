@@ -19,7 +19,7 @@ http:
         "donated": false,
         "target_gender": "male",
         "description": "yaaaoo",
-        "category": "lol"
+        "media_id": null
       }
   auth: inherit
 

@@ -5,7 +5,7 @@ info:
 
 http:
   method: PATCH
-  url: "{{BASE_URL}}/api/v1/products/1121321523"
+  url: "{{BASE_URL}}/api/v1/products/in0mJzSxYJpA8z-ZYAWLQ"
   body:
     type: json
     data: |-
@@ -18,7 +18,8 @@ http:
         "target_gender": "male",
         "description": "",
         "tags": null,
-        "category": "lol"
+        "category": "rzd_aEdEfkYPidwheWjuf",
+        "image_id": "wdS9iExc5w0nB1rEH8qsj"
       }
   auth: inherit
 

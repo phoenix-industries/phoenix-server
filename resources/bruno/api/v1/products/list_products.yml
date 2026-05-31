@@ -5,7 +5,11 @@ info:
 
 http:
   method: GET
-  url: "{{BASE_URL}}/api/v1/products"
+  url: "{{BASE_URL}}/api/v1/products?category_id=rzd_aEdEfkYPidwheWjuf"
+  params:
+    - name: category_id
+      value: rzd_aEdEfkYPidwheWjuf
+      type: query
   auth: inherit
 
 settings:
