@@ -34,6 +34,14 @@ func (s *Service) HandleCreateProduct(w http.ResponseWriter, r *http.Request) *h
 			return httputil.ErrUnauthorized
 		}
 
+		category, err := models.ProductCategoryGetByID(ctx, tx, data.CategoryID)
+		if err != nil {
+			return fmt.Errorf("failed to get category: %w", err)
+		}
+		if category == nil {
+			return httputil.ErrBadRequest
+		}
+
 		id, err := s.auth.GenerateID()
 		if err != nil {
 			return fmt.Errorf("failed to generate id: %w", err)
@@ -89,10 +97,10 @@ func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) *ht
 	}
 
 	filter := models.ProductFilter{
-		Name:      r.URL.Query().Get("filter"),
-		Category:  r.URL.Query().Get("category"),
-		Condition: r.URL.Query().Get("condition"),
-		Price:     priceFilter,
+		Name:       r.URL.Query().Get("filter"),
+		CategoryID: r.URL.Query().Get("category_id"),
+		Condition:  r.URL.Query().Get("condition"),
+		Price:      priceFilter,
 	}
 
 	role, err := httputil.GetUserRole(s.auth, r)
@@ -131,6 +139,7 @@ func (s *Service) HandleGetProductByID(w http.ResponseWriter, r *http.Request) *
 
 type productUpdateData struct {
 	Name         *string `json:"name"`
+	ImageID      *string `json:"image_id"`
 	Price        *int64  `json:"price"`
 	Discount     *int64  `json:"discount"`
 	Quantity     *int    `json:"quantity"`
@@ -214,6 +223,9 @@ func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) *h
 		}
 		if updateData.Tags != nil {
 			product.Tags = updateData.Tags
+		}
+		if updateData.ImageID != nil {
+			product.ImageID = updateData.ImageID
 		}
 
 		if err := models.ProductUpdate(ctx, tx, product); err != nil {

@@ -14,6 +14,7 @@ type userUpdateData struct {
 	Name        *string    `json:"name"`
 	Email       *string    `json:"email"`
 	Phone       *string    `json:"phone"`
+	PictureID   *string    `json:"picture_id"`
 	City        *string    `json:"city"`
 	Governorate *string    `json:"governorate"`
 	Address     *string    `json:"address"`
@@ -127,6 +128,9 @@ func (s *Service) HandleUpdateUser(w http.ResponseWriter, r *http.Request) *http
 	}
 	if updateData.Phone != nil {
 		user.Phone = *updateData.Phone
+	}
+	if updateData.PictureID != nil {
+		user.PictureID = updateData.PictureID
 	}
 	if updateData.City != nil {
 		user.City = updateData.City
