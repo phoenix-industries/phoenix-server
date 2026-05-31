@@ -50,7 +50,7 @@ ec=$?
 
 [ "$DEVMODE" != 1 ] && {
 	command -v strip >/dev/null 2>&1 && strip --strip-all "$out"
-	command -v upx >/dev/null 2>&1 && upx -q --best "$out"
+	command -v upx >/dev/null 2>&1 && upx -q "$out"
 }
 
 exit $ec
