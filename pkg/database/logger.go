@@ -32,7 +32,7 @@ func NewLogger(l *slog.Logger, options ...Option) *Logger {
 	return logger
 }
 
-func (l *Logger) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]interface{}) {
+func (l *Logger) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
 	attrs := make([]slog.Attr, 0, len(data))
 	for k, v := range data {
 		attrs = append(attrs, slog.Any(k, v))

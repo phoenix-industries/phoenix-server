@@ -9,6 +9,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/tracelog"
+
+	"github.com/phoenix-industries/phoenix-server/internal/buildinfo"
 )
 
 const defaultTimeout = 3 * time.Second
@@ -39,6 +42,16 @@ func ConnectWithLogger(ctx context.Context, config *Config, logger *slog.Logger)
 	pgxConfig.PrepareConn = func(ctx context.Context, conn *pgx.Conn) (bool, error) {
 		err := conn.Ping(ctx)
 		return err == nil, err
+	}
+
+	logLevel := tracelog.LogLevelWarn
+	if buildinfo.DevMode() {
+		logLevel = tracelog.LogLevelTrace
+	}
+
+	pgxConfig.ConnConfig.Tracer = &tracelog.TraceLog{
+		Logger:   NewLogger(logger),
+		LogLevel: logLevel,
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, pgxConfig)
