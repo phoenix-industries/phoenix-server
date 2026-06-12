@@ -132,7 +132,7 @@ type ProductFilter struct {
 	Name       string
 	CategoryID string
 	Condition  string
-	Price      [2]int
+	Price      struct{ Min, Max int }
 }
 
 type ProductListData struct {
@@ -204,9 +204,13 @@ func ProductList(ctx context.Context, db database.DB, requireApproval bool, limi
 			args = append(args, filter.Condition)
 			query += fmt.Sprintf(" AND p.condition = $%d", len(args))
 		}
-		if len(filter.Price) == 2 && (filter.Price[0] != 0 || filter.Price[1] != 0) {
-			args = append(args, filter.Price[0], filter.Price[1])
-			query += fmt.Sprintf(" AND p.price BETWEEN $%d AND $%d", len(args)-1, len(args))
+		if filter.Price.Min > 0 {
+			args = append(args, filter.Price.Min)
+			query += fmt.Sprintf(" AND p.price >= $%d", len(args))
+		}
+		if filter.Price.Max > 0 {
+			args = append(args, filter.Price.Max)
+			query += fmt.Sprintf(" AND p.price <= $%d", len(args))
 		}
 	}
 	query += `

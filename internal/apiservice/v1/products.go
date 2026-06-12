@@ -28,7 +28,7 @@ func (s *Service) HandleCreateProduct(w http.ResponseWriter, r *http.Request) *h
 	err = s.db.InTx(ctx, func(tx pgx.Tx) error {
 		user, err := models.UserGetByID(ctx, tx, userID)
 		if err != nil {
-			return fmt.Errorf("failed to get user: %w", err)
+			return httputil.NewStatusError(err, "failed to get user", http.StatusInternalServerError)
 		}
 		if user == nil {
 			return httputil.ErrUnauthorized
@@ -36,15 +36,15 @@ func (s *Service) HandleCreateProduct(w http.ResponseWriter, r *http.Request) *h
 
 		category, err := models.ProductCategoryGetByID(ctx, tx, data.CategoryID)
 		if err != nil {
-			return fmt.Errorf("failed to get category: %w", err)
+			return httputil.NewStatusError(err, "failed to get category", http.StatusInternalServerError)
 		}
 		if category == nil {
-			return httputil.ErrBadRequest
+			return httputil.NewStatusError(nil, "category not found", http.StatusBadRequest)
 		}
 
 		id, err := s.auth.GenerateID()
 		if err != nil {
-			return fmt.Errorf("failed to generate id: %w", err)
+			return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
 		}
 		data.ID = id
 		data.UserID = user.ID
@@ -86,25 +86,27 @@ func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) *ht
 		return httputil.NewStatusError(nil, "limit cannot be greater than 20", http.StatusBadRequest).Response()
 	}
 
-	price := r.URL.Query().Get("price")
-	priceSlice := strings.SplitN(price, "-", 2)
-	var priceFilter [2]int
-	if len(priceSlice) == 2 {
-		priceFilter[0], _ = strconv.Atoi(priceSlice[0])
-		if priceFilter[0] < 0 || priceFilter[0] >= math.MaxInt32-1 {
-			priceFilter[0] = 0
-		}
-		priceFilter[1], _ = strconv.Atoi(priceSlice[1])
-		if priceFilter[1] < 0 || priceFilter[1] >= math.MaxInt32-1 {
-			priceFilter[1] = 0
-		}
-	}
-
 	filter := models.ProductFilter{
-		Name:       r.URL.Query().Get("filter"),
-		CategoryID: r.URL.Query().Get("category_id"),
+		Name:       r.URL.Query().Get("query"),
+		CategoryID: r.URL.Query().Get("category"),
 		Condition:  r.URL.Query().Get("condition"),
-		Price:      priceFilter,
+	}
+	price := r.URL.Query().Get("price")
+	if price != "" {
+		priceSlice := strings.SplitN(price, "-", 2)
+		if len(priceSlice) != 2 {
+			return httputil.NewStatusError(nil, "invalid price range format", http.StatusBadRequest).Response()
+		}
+		priceMin, err := strconv.Atoi(priceSlice[0])
+		if err != nil || priceMin < 0 || priceMin > math.MaxInt32 {
+			return httputil.NewStatusError(err, "invalid price range min", http.StatusBadRequest).Response()
+		}
+		filter.Price.Min = priceMin
+		priceMax, err := strconv.Atoi(priceSlice[1])
+		if err != nil || priceMax < 0 || priceMax > math.MaxInt32 {
+			return httputil.NewStatusError(err, "invalid price range min", http.StatusBadRequest).Response()
+		}
+		filter.Price.Max = priceMax
 	}
 
 	requireApproval := true
