@@ -34,6 +34,7 @@ func (s *Service) Register(ctx context.Context, env *kernel.Env) error {
 	s.auth = env.Auth()
 	s.logger = env.Logger().WithGroup(name)
 
+	pub := env.Router().Group("/" + name)
 	r := env.Router().Group("/" + name)
 	r.Use(httputil.AuthGuardMiddleware(s.auth))
 
@@ -48,7 +49,7 @@ func (s *Service) Register(ctx context.Context, env *kernel.Env) error {
 	r.HandleFunc("DELETE /products/categories/{id}", s.HandleDeleteProductCategory)
 
 	r.HandleFunc("POST /products", s.HandleCreateProduct)
-	r.HandleFunc("GET /products", s.HandleListProducts)
+	pub.HandleFunc("GET /products", s.HandleListProducts)
 	r.HandleFunc("POST /products/buy", s.HandleBuyProduct)
 	r.HandleFunc("GET /products/{id}", s.HandleGetProductByID)
 	r.HandleFunc("PATCH /products/{id}", s.HandleUpdateProduct)

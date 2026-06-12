@@ -50,6 +50,10 @@ func (s *Service) HandleCreateProduct(w http.ResponseWriter, r *http.Request) *h
 		data.UserID = user.ID
 		data.Approved = false
 
+		if err := data.Validate(); err != nil {
+			return httputil.NewStatusError(nil, err.Error(), http.StatusBadRequest)
+		}
+
 		if err := models.ProductInsert(ctx, tx, &data); err != nil {
 			return httputil.NewStatusError(err, "failed to create product", http.StatusInternalServerError)
 		}
@@ -103,11 +107,10 @@ func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) *ht
 		Price:      priceFilter,
 	}
 
-	role, err := httputil.GetUserRole(s.auth, r)
-	if err != nil {
-		return httputil.NewStatusError(err, "failed to get user role", http.StatusInternalServerError).Response()
+	requireApproval := true
+	if role, err := httputil.GetUserRole(s.auth, r); err == nil {
+		requireApproval = !role.Allowed(auth.RoleManager)
 	}
-	requireApproval := !role.Allowed(auth.RoleManager)
 
 	products, err := models.ProductList(r.Context(), s.db.Pool(), requireApproval, limit, offset, &filter)
 	if err != nil {
