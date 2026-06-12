@@ -13,17 +13,17 @@ import (
 
 type Product struct {
 	Model
-	UserID       string     `db:"user_id" json:"user_id"`
+	UserID       string     `db:"user_id" json:"user_id,omitempty"`
 	ImageID      *string    `db:"image_id" json:"image_id"`
 	Name         string     `db:"name" json:"name"`
 	Price        int64      `db:"price" json:"price"`
 	Discount     int64      `db:"discount" json:"discount"`
 	Quantity     int        `db:"quantity" json:"quantity"`
-	CategoryID   string     `db:"category_id" json:"category_id"`
+	CategoryID   string     `db:"category_id" json:"category_id,omitempty"`
 	Condition    string     `db:"condition" json:"condition"`
-	MinimumAge   int        `db:"minimum_age" json:"minimum_age"`
-	MaximumAge   int        `db:"maximum_age" json:"maximum_age"`
-	TargetGender string     `db:"target_gender" json:"target_gender"`
+	MinimumAge   int        `db:"minimum_age" json:"minimum_age,omitempty"`
+	MaximumAge   int        `db:"maximum_age" json:"maximum_age,omitempty"`
+	TargetGender string     `db:"target_gender" json:"target_gender,omitempty"`
 	Description  string     `db:"description" json:"description"`
 	Donated      bool       `db:"donated" json:"donated"`
 	Approved     bool       `db:"approved" json:"approved"`
@@ -77,9 +77,6 @@ func (p *Product) Validate() error {
 }
 
 func ProductInsert(ctx context.Context, db database.DB, product *Product) error {
-	if err := product.Validate(); err != nil {
-		return err
-	}
 	query := `
 		INSERT INTO products
 		(id, user_id, name, price, discount, quantity, category_id, condition, donated, minimum_age, maximum_age, target_gender, description, tags, image_id, brand, approved)
@@ -140,16 +137,53 @@ type ProductFilter struct {
 
 type ProductListData struct {
 	Product
-	User User `db:"user" json:"user"`
+	Category struct {
+		ID   string `db:"id" json:"id"`
+		Name string `db:"name" json:"name"`
+	} `db:"category" json:"category"`
+	User struct {
+		ID          string  `db:"id" json:"id"`
+		Name        string  `db:"name" json:"name"`
+		PictureID   *string `db:"picture_id" json:"picture_id,omitempty"`
+		City        *string `db:"city" json:"city,omitempty"`
+		Governorate *string `db:"governorate" json:"governorate,omitempty"`
+		Address     *string `db:"address" json:"address,omitempty"`
+	} `db:"user" json:"user"`
 }
 
-func ProductList(ctx context.Context, db database.DB, requireApproval bool, limit int, offset int, filter *ProductFilter) ([]*Product, error) {
+func ProductList(ctx context.Context, db database.DB, requireApproval bool, limit int, offset int, filter *ProductFilter) ([]*ProductListData, error) {
 	args := []any{limit, offset}
 	query := `
 		SELECT
-			p.*,
-			pc.name as category
+			p.id,
+			p.name,
+			p.price,
+			p.discount,
+			p.quantity,
+			p.condition,
+			p.description,
+			p.image_id,
+			p.brand,
+			p.tags,
+			p.reviewed_at,
+			p.created_at,
+			p.updated_at,
+			p.approved,
+			json_build_object(
+				'id', pc.id,
+				'name', pc.name
+			) as category,
+			json_build_object(
+				'id', u.id,
+				'name', u.name,
+				'picture_id', u.picture_id,
+				'city', u.city,
+				'governorate', u.governorate,
+				'address', u.address
+			) as "user"
 		FROM products p
+		LEFT JOIN users u
+			ON p.user_id = u.id
 		LEFT JOIN product_categories pc
 			ON p.category_id = pc.id AND pc.deleted_at IS null
 		WHERE p.user_id IS NOT null AND p.deleted_at IS null
@@ -176,12 +210,12 @@ func ProductList(ctx context.Context, db database.DB, requireApproval bool, limi
 		}
 	}
 	query += `
-		GROUP BY p.id, pc.id
+		GROUP BY p.id, pc.id, u.id
 		ORDER BY p.created_at DESC
 		LIMIT $1
 		OFFSET $2
 	`
-	var products []*Product
+	var products []*ProductListData
 	err := pgxscan.Select(ctx, db, &products, query, args...)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
