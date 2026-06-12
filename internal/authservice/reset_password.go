@@ -87,6 +87,7 @@ func (s *Service) HandleResetPassword(w http.ResponseWriter, r *http.Request) *h
 			return httputil.NewStatusError(err, "failed to generate jwt", http.StatusInternalServerError)
 		}
 
+		res.UserID = user.ID
 		res.TokenType = auth.TokenType
 		res.AccessToken = accessToken
 		res.RefreshToken = refreshToken

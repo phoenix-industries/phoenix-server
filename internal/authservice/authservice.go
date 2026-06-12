@@ -13,6 +13,7 @@ import (
 var _ kernel.Service = (*Service)(nil)
 
 type AuthResponse struct {
+	UserID       string `json:"user_id"`
 	TokenType    string `json:"token_type"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`

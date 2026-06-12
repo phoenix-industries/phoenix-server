@@ -13,12 +13,15 @@ import (
 )
 
 type registerData struct {
-	Name      string            `json:"name"`
-	Email     string            `json:"email"`
-	Phone     string            `json:"phone"`
-	Password  string            `json:"password"`
-	Gender    models.UserGender `json:"gender"`
-	Birthdate time.Time         `json:"birthdate"`
+	Name        string            `json:"name"`
+	Email       string            `json:"email"`
+	Phone       string            `json:"phone"`
+	Password    string            `json:"password"`
+	Gender      models.UserGender `json:"gender"`
+	Birthdate   time.Time         `json:"birthdate"`
+	City        *string           `json:"city"`
+	Governorate *string           `json:"governorate"`
+	Address     *string           `json:"address"`
 }
 
 func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) *httputil.Response {
@@ -32,12 +35,15 @@ func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) *httput
 	}
 
 	user := models.User{
-		Name:      data.Name,
-		Email:     data.Email,
-		Phone:     data.Phone,
-		Role:      auth.RoleMember,
-		Gender:    data.Gender,
-		Birthdate: data.Birthdate,
+		Name:        data.Name,
+		Email:       data.Email,
+		Phone:       data.Phone,
+		Role:        auth.RoleMember,
+		Gender:      data.Gender,
+		Birthdate:   data.Birthdate,
+		City:        data.City,
+		Governorate: data.Governorate,
+		Address:     data.Address,
 	}
 	if err := user.Validate(); err != nil {
 		return httputil.NewStatusError(nil, err.Error(), http.StatusBadRequest).Response()
@@ -101,7 +107,7 @@ func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) *httput
 
 		session := models.UserSession{
 			ID:        sessionID,
-			UserID:    userID,
+			UserID:    user.ID,
 			Token:     refreshToken,
 			IPAddress: httputil.IP(r),
 			UserAgent: httputil.UserAgent(r),
@@ -116,6 +122,7 @@ func (s *Service) HandleRegister(w http.ResponseWriter, r *http.Request) *httput
 			return httputil.NewStatusError(err, "failed to generate jwt", http.StatusInternalServerError)
 		}
 
+		res.UserID = user.ID
 		res.TokenType = auth.TokenType
 		res.AccessToken = accessToken
 		res.RefreshToken = refreshToken
