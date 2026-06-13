@@ -35,7 +35,7 @@ func (s *Service) HandleCreateProductCategory(w http.ResponseWriter, r *http.Req
 		return httputil.NewStatusError(err, "failed to get category categories", http.StatusInternalServerError).Response()
 	}
 
-	return httputil.NewResponseOK(http.StatusNoContent, nil)
+	return httputil.NewResponseOK(http.StatusCreated, category)
 }
 
 func (s *Service) HandleListProductCategories(w http.ResponseWriter, r *http.Request) *httputil.Response {
