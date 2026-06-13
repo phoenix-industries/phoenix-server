@@ -49,8 +49,8 @@ ec=$?
 	echo "$(basename "$0"): build failed" >&2
 
 [ "$DEVMODE" != 1 ] && {
-	command -v strip >/dev/null 2>&1 && strip --strip-all "$out"
-	command -v upx >/dev/null 2>&1 && upx -q "$out"
+	command -v strip >/dev/null 2>&1 && strip --strip-all "$out" || true
+	command -v upx >/dev/null 2>&1 && upx -q "$out" || true
 }
 
 exit $ec
