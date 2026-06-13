@@ -64,7 +64,7 @@ func (s *Service) HandleCreateProduct(w http.ResponseWriter, r *http.Request) *h
 		return httputil.ResponseFromError(err)
 	}
 
-	return httputil.NewResponseOK(http.StatusNoContent, nil)
+	return httputil.NewResponseOK(http.StatusCreated, nil)
 }
 
 func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) *httputil.Response {
