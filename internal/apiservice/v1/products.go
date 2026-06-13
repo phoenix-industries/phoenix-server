@@ -93,18 +93,22 @@ func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) *ht
 	}
 	price := r.URL.Query().Get("price")
 	if price != "" {
+		filter.Price = &models.ProductFilterPrice{}
 		priceSlice := strings.SplitN(price, "-", 2)
 		if len(priceSlice) != 2 {
 			return httputil.NewStatusError(nil, "invalid price range format", http.StatusBadRequest).Response()
 		}
 		priceMin, err := strconv.Atoi(priceSlice[0])
 		if err != nil || priceMin < 0 || priceMin > math.MaxInt32 {
-			return httputil.NewStatusError(err, "invalid price range min", http.StatusBadRequest).Response()
+			return httputil.NewStatusError(err, "invalid price min range", http.StatusBadRequest).Response()
 		}
 		filter.Price.Min = priceMin
 		priceMax, err := strconv.Atoi(priceSlice[1])
 		if err != nil || priceMax < 0 || priceMax > math.MaxInt32 {
-			return httputil.NewStatusError(err, "invalid price range min", http.StatusBadRequest).Response()
+			return httputil.NewStatusError(err, "invalid price max range", http.StatusBadRequest).Response()
+		}
+		if priceMax != 0 && priceMax < priceMin {
+			return httputil.NewStatusError(nil, "invalid price max range", http.StatusBadRequest).Response()
 		}
 		filter.Price.Max = priceMax
 	}
@@ -305,10 +309,10 @@ type productBuyData struct {
 }
 
 func (s *Service) HandleBuyProduct(w http.ResponseWriter, r *http.Request) *httputil.Response {
-	const profitMin = 20
-	const profitMax = 1000
+	const profitMin = 20 * 100
+	const profitMax = 1000 * 100
 	const profitPercent = 10 // %
-	const shippingFee = 20
+	const shippingFee = 50 * 100
 	const maxDonatedCount = 2
 	const maxProductCount = 10
 

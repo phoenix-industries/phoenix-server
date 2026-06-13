@@ -55,6 +55,9 @@ func (p *Product) Validate() error {
 	if p.Discount > p.Price {
 		return errors.New("product discount cannot be greater than product price")
 	}
+	if p.Donated && (p.Price > 0 || p.Discount > 0) {
+		return errors.New("a donated product cannot have a price nor a discount")
+	}
 	if p.MinimumAge < 3 {
 		return errors.New("minimum age must be greater than or equal to 3")
 	}
@@ -128,11 +131,16 @@ func ProductGetByID(ctx context.Context, db database.DB, id string, requireAppro
 	return &product, nil
 }
 
+type ProductFilterPrice struct {
+	Min int
+	Max int
+}
+
 type ProductFilter struct {
 	Name       string
 	CategoryID string
 	Condition  string
-	Price      struct{ Min, Max int }
+	Price      *ProductFilterPrice
 }
 
 type ProductListData struct {
@@ -204,13 +212,19 @@ func ProductList(ctx context.Context, db database.DB, requireApproval bool, limi
 			args = append(args, filter.Condition)
 			query += fmt.Sprintf(" AND p.condition = $%d", len(args))
 		}
-		if filter.Price.Min > 0 {
-			args = append(args, filter.Price.Min)
-			query += fmt.Sprintf(" AND p.price >= $%d", len(args))
-		}
-		if filter.Price.Max > 0 {
-			args = append(args, filter.Price.Max)
-			query += fmt.Sprintf(" AND p.price <= $%d", len(args))
+		if filter.Price != nil {
+			if filter.Price.Min == 0 && filter.Price.Max == 0 {
+				query += " AND p.price = 0"
+			} else {
+				if filter.Price.Min > 0 {
+					args = append(args, filter.Price.Min)
+					query += fmt.Sprintf(" AND p.price >= $%d", len(args))
+				}
+				if filter.Price.Max > 0 {
+					args = append(args, filter.Price.Max)
+					query += fmt.Sprintf(" AND p.price <= $%d", len(args))
+				}
+			}
 		}
 	}
 	query += `
