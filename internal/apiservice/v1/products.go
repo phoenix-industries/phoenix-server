@@ -220,13 +220,13 @@ func (s *Service) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) *h
 			product.Condition = *updateData.Condition
 		}
 		if updateData.MinimumAge != nil {
-			product.MinimumAge = *updateData.MinimumAge
+			product.MinimumAge = updateData.MinimumAge
 		}
 		if updateData.MaximumAge != nil {
-			product.MaximumAge = *updateData.MaximumAge
+			product.MaximumAge = updateData.MaximumAge
 		}
 		if updateData.TargetGender != nil {
-			product.TargetGender = *updateData.TargetGender
+			product.TargetGender = updateData.TargetGender
 		}
 		if updateData.Description != nil {
 			product.Description = *updateData.Description

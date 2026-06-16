@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -21,9 +22,9 @@ type Product struct {
 	Quantity     int        `db:"quantity" json:"quantity"`
 	CategoryID   string     `db:"category_id" json:"category_id,omitempty"`
 	Condition    string     `db:"condition" json:"condition"`
-	MinimumAge   int        `db:"minimum_age" json:"minimum_age,omitempty"`
-	MaximumAge   int        `db:"maximum_age" json:"maximum_age,omitempty"`
-	TargetGender string     `db:"target_gender" json:"target_gender,omitempty"`
+	MinimumAge   *int       `db:"minimum_age" json:"minimum_age,omitempty"`
+	MaximumAge   *int       `db:"maximum_age" json:"maximum_age,omitempty"`
+	TargetGender *string    `db:"target_gender" json:"target_gender,omitempty"`
 	Description  string     `db:"description" json:"description"`
 	Donated      bool       `db:"donated" json:"donated"`
 	Approved     bool       `db:"approved" json:"approved"`
@@ -49,8 +50,14 @@ func (p *Product) Validate() error {
 	if p.Price < 0 {
 		return errors.New("product price cannot be less than 0")
 	}
+	if p.Price > math.MaxInt32 {
+		return errors.New("product price too large")
+	}
 	if p.Discount < 0 {
 		return errors.New("product discount cannot be less than 0")
+	}
+	if p.Discount > math.MaxInt32 {
+		return errors.New("product discount too large")
 	}
 	if p.Discount > p.Price {
 		return errors.New("product discount cannot be greater than product price")
@@ -58,17 +65,17 @@ func (p *Product) Validate() error {
 	if p.Donated && (p.Price > 0 || p.Discount > 0) {
 		return errors.New("a donated product cannot have a price nor a discount")
 	}
-	if p.MinimumAge < 3 {
+	if p.MinimumAge != nil && *p.MinimumAge < 3 {
 		return errors.New("minimum age must be greater than or equal to 3")
 	}
-	if p.MaximumAge < 0 {
+	if p.MaximumAge != nil && *p.MaximumAge < 0 {
 		return errors.New("maximum age must be greater than or equal to 0")
 	}
-	if p.MaximumAge > 0 && p.MaximumAge < p.MinimumAge {
+	if p.MaximumAge != nil && *p.MaximumAge > 0 && *p.MaximumAge < *p.MinimumAge {
 		return errors.New("maximum age must be greater than or equal to minimum age")
 	}
-	if p.TargetGender == "" {
-		return errors.New("target gender is required")
+	if p.TargetGender != nil && *p.TargetGender == "" {
+		return errors.New("target gender cannot be empty")
 	}
 	if p.Description == "" {
 		return errors.New("product description is required")
