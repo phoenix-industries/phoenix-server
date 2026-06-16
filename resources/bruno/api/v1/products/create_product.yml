@@ -11,15 +11,14 @@ http:
     data: |-
       {
         "name": "New Product",
-        "price": 213123213,
-        "category_id": "s0yCcxfrI2xpydbeCdJDt",
+        "price": 0,
+        "category_id": "rzd_aEdEfkYPidwheWjuf",
         "condition": "good",
-        "minimum_age": 18,
+        "minimum_age": 6,
         "maximum_age": 99,
-        "donated": false,
-        "target_gender": "male",
+        "donated": true,
         "description": "yaaaoo",
-        "media_id": null
+        "image_id": "7eYEMNQ_L0vIePZI3XGQV"
       }
   auth: inherit
 
