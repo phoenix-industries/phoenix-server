@@ -304,8 +304,13 @@ type productBuyData struct {
 		ID       string `json:"id"`
 		Quantity int    `json:"quantity"`
 	} `json:"products"`
-	ShippingAddress *string `json:"shipping_address"`
-	ShippingNote    *string `json:"shipping_note"`
+	ShippingInfo *struct {
+		FullName string  `json:"full_name"`
+		Phone    string  `json:"phone"`
+		City     string  `json:"city"`
+		Address  string  `json:"address"`
+		Note     *string `json:"note"`
+	} `json:"shipping_info"`
 }
 
 func (s *Service) HandleBuyProduct(w http.ResponseWriter, r *http.Request) *httputil.Response {
@@ -323,6 +328,8 @@ func (s *Service) HandleBuyProduct(w http.ResponseWriter, r *http.Request) *http
 	if len(data.Products) == 0 || len(data.Products) > maxProductCount {
 		return httputil.ErrBadRequest.Response()
 	}
+	fmt.Printf("data.Products: %+v\n", data.Products)
+	fmt.Printf("data.shippingInfo: %+v\n", data.ShippingInfo)
 	productIDs := make([]string, len(data.Products))
 	quantityMap := make(map[string]int, len(data.Products))
 	for i, p := range data.Products {
@@ -436,7 +443,7 @@ func (s *Service) HandleBuyProduct(w http.ResponseWriter, r *http.Request) *http
 			}
 		}
 		amount := subtotal - discount
-		if data.ShippingAddress != nil {
+		if data.ShippingInfo != nil {
 			amount += shippingFee
 		}
 
@@ -501,7 +508,7 @@ func (s *Service) HandleBuyProduct(w http.ResponseWriter, r *http.Request) *http
 			return httputil.NewStatusError(err, "failed to create invoice item", http.StatusInternalServerError)
 		}
 
-		if data.ShippingAddress != nil {
+		if data.ShippingInfo != nil {
 			shippingID, err := s.auth.GenerateID()
 			if err != nil {
 				return httputil.NewStatusError(err, "failed to generate id", http.StatusInternalServerError)
@@ -513,8 +520,14 @@ func (s *Service) HandleBuyProduct(w http.ResponseWriter, r *http.Request) *http
 				UserID:    userID,
 				InvoiceID: invoiceID,
 				Fee:       shippingFee,
-				Address:   *data.ShippingAddress,
-				Note:      data.ShippingNote,
+				FullName:  data.ShippingInfo.FullName,
+				Phone:     data.ShippingInfo.Phone,
+				City:      data.ShippingInfo.City,
+				Address:   data.ShippingInfo.Address,
+				Note:      data.ShippingInfo.Note,
+			}
+			if err := shipping.Validate(); err != nil {
+				return httputil.NewStatusError(nil, "invalid shipping info: "+err.Error(), http.StatusBadRequest)
 			}
 			if err := models.ShippingInsert(ctx, tx, &shipping); err != nil {
 				return httputil.NewStatusError(err, "failed to create shipping", http.StatusInternalServerError)
