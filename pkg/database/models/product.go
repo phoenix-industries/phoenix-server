@@ -145,6 +145,7 @@ type ProductFilterPrice struct {
 
 type ProductFilter struct {
 	Name       string
+	UserID     string
 	CategoryID string
 	Condition  string
 	Price      *ProductFilterPrice
@@ -174,6 +175,7 @@ func ProductList(ctx context.Context, db database.DB, requireApproval bool, limi
 			p.name,
 			p.price,
 			p.discount,
+			p.donated,
 			p.quantity,
 			p.condition,
 			p.description,
@@ -210,6 +212,10 @@ func ProductList(ctx context.Context, db database.DB, requireApproval bool, limi
 		if filter.Name != "" {
 			args = append(args, fmt.Sprintf("%%%s%%", filter.Name))
 			query += fmt.Sprintf(" AND p.name ILIKE $%d", len(args))
+		}
+		if filter.UserID != "" {
+			args = append(args, filter.UserID)
+			query += fmt.Sprintf(" AND p.user_id = $%d", len(args))
 		}
 		if filter.CategoryID != "" {
 			args = append(args, filter.CategoryID)

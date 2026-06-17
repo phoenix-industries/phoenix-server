@@ -88,9 +88,19 @@ func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) *ht
 
 	filter := models.ProductFilter{
 		Name:       r.URL.Query().Get("query"),
+		UserID:     r.URL.Query().Get("user"),
 		CategoryID: r.URL.Query().Get("category"),
 		Condition:  r.URL.Query().Get("condition"),
 	}
+
+	if filter.UserID == "me" {
+		userID, err := httputil.GetUserID(s.auth, r)
+		if err != nil {
+			return httputil.NewStatusError(err, "failed to get user id", http.StatusUnauthorized).Response()
+		}
+		filter.UserID = userID
+	}
+
 	price := r.URL.Query().Get("price")
 	if price != "" {
 		filter.Price = &models.ProductFilterPrice{}
