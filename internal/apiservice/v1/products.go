@@ -123,10 +123,13 @@ func (s *Service) HandleListProducts(w http.ResponseWriter, r *http.Request) *ht
 		filter.Price.Max = priceMax
 	}
 
-	requireApproval := true
-	if role, err := httputil.GetUserRole(s.auth, r); err == nil {
-		requireApproval = !role.Allowed(auth.RoleManager)
-	}
+	role, _ := httputil.GetUserRole(s.auth, r)
+	userID, _ := httputil.GetUserID(s.auth, r)
+
+	// approval is required if the user is not a manager
+	// and the filter is neither "me" nor the current user ID
+	requireApproval := !role.Allowed(auth.RoleManager) &&
+		(filter.UserID == "" || (filter.UserID != "me" && filter.UserID != userID))
 
 	products, err := models.ProductList(r.Context(), s.db.Pool(), requireApproval, limit, offset, &filter)
 	if err != nil {
@@ -142,14 +145,26 @@ func (s *Service) HandleGetProductByID(w http.ResponseWriter, r *http.Request) *
 		return httputil.ErrBadRequest.Response()
 	}
 
-	requireApproval := true
-	if role, err := httputil.GetUserRole(s.auth, r); err == nil {
-		requireApproval = !role.Allowed(auth.RoleManager)
-	}
-
-	product, err := models.ProductGetByID(r.Context(), s.db.Pool(), id, requireApproval)
+	product, err := models.ProductGetByID(r.Context(), s.db.Pool(), id, false)
 	if err != nil {
 		return httputil.NewStatusError(err, "failed to get product", http.StatusInternalServerError).Response()
+	}
+	if product == nil {
+		return httputil.ErrNotFound.Response()
+	}
+
+	if !product.Approved {
+		role, err := httputil.GetUserRole(s.auth, r)
+		if err != nil {
+			return httputil.ErrUnauthorized.Response()
+		}
+		userID, err := httputil.GetUserID(s.auth, r)
+		if err != nil {
+			return httputil.ErrUnauthorized.Response()
+		}
+		if !role.Allowed(auth.RoleManager) && product.UserID != userID {
+			return httputil.ErrUnauthorized.Response()
+		}
 	}
 
 	return httputil.NewResponseOK(http.StatusOK, product)
