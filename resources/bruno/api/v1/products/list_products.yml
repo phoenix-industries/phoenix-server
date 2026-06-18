@@ -31,6 +31,10 @@ http:
       value: "0"
       type: query
       disabled: true
+    - name: user
+      value: me
+      type: query
+      disabled: true
   auth: inherit
 
 settings:

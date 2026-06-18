@@ -142,11 +142,10 @@ func (s *Service) HandleGetProductByID(w http.ResponseWriter, r *http.Request) *
 		return httputil.ErrBadRequest.Response()
 	}
 
-	role, err := httputil.GetUserRole(s.auth, r)
-	if err != nil {
-		return httputil.ResponseFromError(err)
+	requireApproval := true
+	if role, err := httputil.GetUserRole(s.auth, r); err == nil {
+		requireApproval = !role.Allowed(auth.RoleManager)
 	}
-	requireApproval := !role.Allowed(auth.RoleManager)
 
 	product, err := models.ProductGetByID(r.Context(), s.db.Pool(), id, requireApproval)
 	if err != nil {
