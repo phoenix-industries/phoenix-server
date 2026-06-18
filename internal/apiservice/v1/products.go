@@ -352,8 +352,6 @@ func (s *Service) HandleBuyProduct(w http.ResponseWriter, r *http.Request) *http
 	if len(data.Products) == 0 || len(data.Products) > maxProductCount {
 		return httputil.ErrBadRequest.Response()
 	}
-	fmt.Printf("data.Products: %+v\n", data.Products)
-	fmt.Printf("data.shippingInfo: %+v\n", data.ShippingInfo)
 	productIDs := make([]string, len(data.Products))
 	quantityMap := make(map[string]int, len(data.Products))
 	for i, p := range data.Products {
