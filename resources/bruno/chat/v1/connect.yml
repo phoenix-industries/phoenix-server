@@ -4,7 +4,7 @@ info:
   seq: 1
 
 websocket:
-  url: ws://{{HOST}}:{{PORT}}/chat/v1/connect
+  url: wss://osama.alwaysdata.net/chat/v1/connect
   message:
     type: json
     data: |-
